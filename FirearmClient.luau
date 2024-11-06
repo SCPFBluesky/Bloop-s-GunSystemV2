@@ -19,15 +19,16 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 
-local Remote = game.ReplicatedStorage.FirearmShared.Remotes.Main
+local FirearmShared = game.ReplicatedStorage:WaitForChild("FirearmShared")
+local Remote = FirearmShared.Remotes.Main
 --local Remote = BridgeNet.CreateBridge("Main")
-local ClientRemote = game.ReplicatedStorage.FirearmShared.Remotes.Client
+local ClientRemote = FirearmShared.Remotes.Client
 --local ClientRemote = BridgeNet.CreateBridge("Client")
-local Dic = require(game.ReplicatedStorage.FirearmShared.Dictionary)
-local Tagged = require(game.ReplicatedStorage.FirearmShared.Tagged)
-local ReloadRemote = game.ReplicatedStorage.FirearmShared.Remotes.Reload
-local HitEffects = game.ReplicatedStorage.FirearmShared.Stuff.Effects
-local FlashRemote = game.ReplicatedStorage.FirearmShared.Remotes.Flashlight
+local Dic = require(FirearmShared.Dictionary)
+local Tagged = require(FirearmShared.Tagged)
+local ReloadRemote =FirearmShared.Remotes.Reload
+local HitEffects = FirearmShared.Stuff.Effects
+local FlashRemote = FirearmShared.Remotes.Flashlight
 
 local FirearmClient = {}
 local Player = game.Players.LocalPlayer
@@ -48,7 +49,7 @@ local Mouse = Player:GetMouse()
 local FiringConnection
 local LastFire = 0
 
-local MobileHUD = Player.PlayerGui.MobileUI.MobileButtons
+local MobileHUD = Player.PlayerGui:WaitForChild("MobileUI").MobileButtons
 local LowerButton = MobileHUD.LowerButton
 local ReloadButton = MobileHUD.ReloadButton
 local FlashButton = MobileHUD.Flashlight
@@ -83,13 +84,13 @@ local Settings = {
 ---------------------------
 
 
---[[@native function BindToTag(Tag: string, Function: (Instance) -> ()): RBXScriptConnection
+@native function BindToTag(Tag: string, Function: (Instance) -> ()): RBXScriptConnection
 	for _, Value in CollectionService:GetTagged(Tag) do
 		task.spawn(Function, Value)
 	end;
 
 	return CollectionService:GetInstanceAddedSignal(Tag):Connect(Function)
-end;]]
+end;
 
 
 if UserInputService.TouchEnabled == true then
@@ -399,7 +400,7 @@ end;
 			if self and not gpe then
 				IsButtonDown = true
 
-				while IsButtonDown and IsEquipped and CurrentModule.Ammo > 0 do
+				while IsButtonDown and IsEquipped and CurrentModule.Ammo > 0 and CurrentModule and self do
 					if alreadyfiring or not canfire() then return end;
 					alreadyfiring = true
 
@@ -407,7 +408,7 @@ end;
 					RPM(CurrentModule.RPM)
 
 					alreadyfiring = false
-
+					if self == nil or CurrentModule == nil then break end;
 					if not CurrentModule.Automatic then break end;
 				end;
 			end;
@@ -494,15 +495,6 @@ Player.Character:WaitForChild("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):
 	end;
 end);
 
-Player.Backpack.ChildAdded:Connect(@native function(child: Tool)
-		CheckAndInitWeapon(child)
-end);
-
-for _, tool in pairs(Player.Backpack:GetChildren()) do
-	if tool:IsA("Tool") then
-		CheckAndInitWeapon(tool)
-	end;
-end;
 
 @native function thesus(item: Tool)
 	if Dic[item.Name] then
@@ -511,16 +503,6 @@ end;
 		ResetWeaponState(true)
 	end;
 end;
-
-Player.CharacterAdded:Connect(@native function()
-	for _, tool in pairs(Player.Backpack:GetChildren()) do
-		if tool:IsA("Tool") then
-			CheckAndInitWeapon(tool)
-			thesus(tool)
-		end;
-	end;
-end);
-
 
 
 ReloadButton.MouseButton1Click:Connect(@native function(gpe: boolean) 
@@ -559,5 +541,5 @@ end);
 
 
 ClientRemote.OnClientEvent:Connect(mkHitEffects)
-
+BindToTag("Firearm", InitWeapon)
 return FirearmClient
