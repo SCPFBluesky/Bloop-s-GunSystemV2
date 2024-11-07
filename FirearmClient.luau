@@ -541,5 +541,23 @@ end);
 
 
 ClientRemote.OnClientEvent:Connect(mkHitEffects)
-BindToTag("Firearm", InitWeapon)
+local Players = game:GetService("Players")
+local CollectionService = game:GetService("CollectionService")
+local Player = Players.LocalPlayer
+
+@native function added(character)
+	character.ChildAdded:Connect(function(child)
+		if child:IsA("Tool") and CollectionService:HasTag(child, "Firearm") then
+			child.Equipped:Connect(function()
+				InitWeapon(child)
+			end)
+		end
+	end)
+end
+
+if Player.Character then
+	added(Player.Character)
+end
+
+Player.CharacterAdded:Connect(added)
 return FirearmClient
