@@ -585,35 +585,30 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
 end);
 
 
-local EquippedTools = {}
-
-@native function added(character)
-
-    EquippedTools[Player.UserId] = {}
-
-    character.ChildAdded:Connect(@native function(child: Tool)
-        if child:IsA("Tool") then
-            child.Equipped:Connect(@native function()
-                CheckAndInitWeapon(child)
-                if table.find(EquippedTools[Player.UserId], child) then 
-                    return
+local function added()
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    char.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") and Dic[child.Name] then
+            warn("checking and initing")
+            char:WaitForChild("Humanoid").Died:Connect(@native function()
+                for _,v in Player.Character:GetChildren() do
+                    if v:IsA("Tool") and Dic[child.Name] then
+                        thesus(child)
+                    end
                 end
-                table.insert(EquippedTools[Player.UserId], child)
-                thesus(child)
-            end);
-        end;
-    end);
-
-    character:WaitForChild("Humanoid").Died:Connect(@native function()
-        EquippedTools[Player.UserId] = {}
-    end);
-end;
-
-
-if Player.Character then
-    added(char)
+                for _,v in Player.Backpack:GetChildren() do
+                   if v:IsA("Tool") and Dic[child.Name] then
+                        thesus(child)
+                   end
+                end
+            end)
+            child.Equipped:Connect(function()
+                warn("initing")
+                CheckAndInitWeapon(child)
+            end)
+        end
+    end)
 end
-
 
 Player.CharacterAdded:Connect(added)
 ClientRemote.OnClientEvent:Connect(mkHitEffects)
