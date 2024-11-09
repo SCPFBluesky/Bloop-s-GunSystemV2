@@ -560,6 +560,7 @@ end;
 
 
 Player.CharacterAdded:Connect(@native function(character: Model) 
+    task.wait(3)
    for _,v in Player.Backpack:GetChildren() do
         thesus(v)
    end
