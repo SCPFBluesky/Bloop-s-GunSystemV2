@@ -560,15 +560,17 @@ end;
 
 
 Player.CharacterAdded:Connect(@native function(character: Model) 
-    task.wait(3)
-   for _,v in Player.Backpack:GetChildren() do
-        thesus(v)
-   end
-   for _,v in Player.Character:GetChildren() do
-        if v:IsA("Tool") then
+    task.defer(@native function()
+        task.wait(3)
+        for _,v in Player.Backpack:GetChildren() do
             thesus(v)
         end
-   end
+        for _,v in Player.Character:GetChildren() do
+            if v:IsA("Tool") then
+                thesus(v)
+            end
+        end
+   end)
 end)
 
 Player.CharacterAdded:Connect(added)
