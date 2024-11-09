@@ -548,7 +548,7 @@ local Player = Players.LocalPlayer
 	character.ChildAdded:Connect(@native function(child: Tool)
 		if child:IsA("Tool") and CollectionService:HasTag(child, "Firearm") then
 			child.Equipped:Connect(@native function()
-				InitWeapon(child)
+                InitWeapon(child)
 			end);
 		end;
 	end);
@@ -557,6 +557,18 @@ end;
 if Player.Character then
 	added(Player.Character)
 end;
+
+
+Player.CharacterAdded:Connect(@native function(character: Model) 
+   for _,v in Player.Backpack:GetChildren() do
+        thesus(v)
+   end
+   for _,v in Player.Character:GetChildren() do
+        if v:IsA("Tool") then
+            thesus(v)
+        end
+   end
+end)
 
 Player.CharacterAdded:Connect(added)
 return FirearmClient
