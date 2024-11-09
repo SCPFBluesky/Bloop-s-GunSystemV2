@@ -148,10 +148,13 @@ end;
 	
 	ReloadRemote:FireServer(self)
 	CurrentAnimations.Reload:Play(0.2)
-	IsReloading = true
-	
-	CurrentModule.Ammo = 0
-	CurrentModule.Ammo = CurrentModule.MaxAmmo
+    IsReloading = true
+    
+    if CurrentModule and self then
+        CurrentModule.Ammo = 0
+        CurrentModule.Ammo = CurrentModule.MaxAmmo
+    end
+    
 	CurrentAnimations.Reload.Ended:Wait()
 	--task.wait(CurrentGun.Handle.Muzzle.Reload.TimeLength - 0.4)
 	IsReloading = false
@@ -359,100 +362,142 @@ end)]]
 ---------------------------
 
 @native function CheckAndInitWeapon(tool: Tool)
-	if Dic[tool.Name] then
+    if Dic[tool.Name] then
+       -- warn("passed checks")
 		InitWeapon(tool)
 	end;
 end;
 
 @native function InitWeapon(gun: Tool)
-	if not Player.Character or Player.Character:WaitForChild("Humanoid").Health <= 0 then return end
-	ResetWeaponState(false)
+   -- warn("init called")
+    if not Player.Character or Player.Character:WaitForChild("Humanoid").Health <= 0 then return end
+    ResetWeaponState(false)
 
-	local equip, unequip
+    local equip, unequip
+    local debounce = false
+    local LastWeapon = nil
+    local ActiveConnection, Deactivated
 
-	equip = gun.Equipped:Connect(@native function()
-		ResetWeaponState(false)
-		og = Player.Character:WaitForChild("Humanoid").WalkSpeed
-		IsEquipped = not IsEquipped
-		local char = Player.Character or Player.CharacterAdded:Wait()
-		local hum = char:WaitForChild("Humanoid")
+    @native local function CleanAnimations()
+        for _, anim in pairs(CurrentAnimations) do
+            if anim then
+                anim:Stop()
+                anim:Destroy() 
+            end;
+        end;
+    end;
 
-		self = gun
-		CurrentModule = Dic[tostring(gun)]
-		--local self = self
-		for name, Id in pairs(CurrentModule.Animations) do
-			local newAnimation = Instance.new("Animation")
-			newAnimation.AnimationId = "rbxassetid://" .. Id
-			local loadedAnim = hum:LoadAnimation(newAnimation)
-			CurrentAnimations[name] = loadedAnim
-		end;
+    equip = gun.Equipped:Connect(@native function()
+        if debounce or gun == LastWeapon then return end
+        debounce = true
+        LastWeapon = gun
+        ResetWeaponState(false)
 
-		CurrentAnimations.Idle:Play(0.2)
-		
-		if IsMobile then
-			Player.PlayerGui.MobileUI.Enabled = not Player.PlayerGui.MobileUI.Enabled
-		end;
-		
-		RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
-		
-		self.Activated:Connect(@native function(gpe: boolean)
-			if IsEquipped == false then return end;
-			if self and not gpe then
-				IsButtonDown = true
+        og = Player.Character:WaitForChild("Humanoid").WalkSpeed
+        IsEquipped = true
 
-				while IsButtonDown and IsEquipped and CurrentModule.Ammo > 0 and CurrentModule and self do
-					if alreadyfiring or not canfire() then return end;
-					alreadyfiring = true
+        local char = Player.Character or Player.CharacterAdded:Wait()
+        local hum = char:WaitForChild("Humanoid")
 
-					RealFire(self)
-					RPM(CurrentModule.RPM)
+        self = gun
+        CurrentModule = Dic[tostring(gun)]
 
-					alreadyfiring = false
-					if self == nil or CurrentModule == nil then break end;
-					if not CurrentModule.Automatic then break end;
-				end;
-			end;
-		end);
-		
-		UserInputService.TouchStarted:Connect(@native function(touch: InputObject, gameProcessedEvent: boolean) 
-			if gameProcessedEvent then return end;
-			IsButtonDown = true
-		end)
-		UserInputService.TouchEnded:Connect(@native function(touch: InputObject, gameProcessedEvent: boolean) 
-			if gameProcessedEvent then return end;
-			IsButtonDown, alreadyfiring = false, false 
-		end)
-		self.Deactivated:Connect(@native function(gpe: boolean)
-			if IsEquipped == false then return end
-			if not gpe then
-				IsButtonDown, alreadyfiring = false, false 
-			end;
-		end);
-	end);
+        CleanAnimations()
+        CurrentAnimations = {}
+        
+        for name, Id in pairs(CurrentModule.Animations) do
+            local newAnimation = Instance.new("Animation")
+            newAnimation.AnimationId = "rbxassetid://" .. Id
+            local loadedAnim = hum:LoadAnimation(newAnimation)
+            CurrentAnimations[name] = loadedAnim
+        end;
 
-	unequip = gun.Unequipped:Connect(@native function()
-		self = nil
-		IsEquipped = not IsEquipped
-		CurrentModule = nil
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
-		Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
-	--	Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
-		Player.Character:WaitForChild("Humanoid").WalkSpeed = og
-		
-		for _, anim in pairs(CurrentAnimations) do
-			if anim then
-				anim:Stop()
-			end;
-		end;
-		
-		if IsMobile then
-			Player.PlayerGui.MobileUI.Enabled = not Player.PlayerGui.MobileUI.Enabled
-		end;
-		
-		ResetWeaponState(false)
-	end);
+        if CurrentAnimations.Idle then
+            CurrentAnimations.Idle:Play(0.2)
+        end;
+
+        if IsMobile then
+            Player.PlayerGui.MobileUI.Enabled = true
+        end;
+
+        RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
+
+        if not ActiveConnection then
+            ActiveConnection = self.Activated:Connect(function(gpe: boolean)
+                if not self or not CurrentModule or not IsEquipped or gpe then return end;
+
+                IsButtonDown = true
+                while IsButtonDown and IsEquipped and CurrentModule and CurrentModule.Ammo > 0 and self do
+                    if alreadyfiring or not canfire() then return end;
+
+                    if not self or not CurrentModule then return end;
+
+                    alreadyfiring = true
+                    RealFire(self)
+
+                    if CurrentModule and CurrentModule.RPM then
+                        RPM(CurrentModule.RPM)
+                    end;
+
+                    alreadyfiring = false
+                    if not CurrentModule or not CurrentModule.Automatic then break end;
+                end;
+            end);
+        end;
+
+
+        UserInputService.TouchStarted:Connect(@native function(touch: InputObject, gameProcessedEvent: boolean) 
+            if not gameProcessedEvent then IsButtonDown = true end;
+        end);
+
+        UserInputService.TouchEnded:Connect(@native function(touch: InputObject, gameProcessedEvent: boolean) 
+            if not gameProcessedEvent then IsButtonDown, alreadyfiring = false, false end;
+        end);
+
+        if not Deactivated then
+            Deactivated = self.Deactivated:Connect(@native function(gpe: boolean)
+                if IsEquipped == false or gpe then return end
+                IsButtonDown, alreadyfiring = false, false 
+            end);
+        end;
+
+        debounce = false
+    end);
+
+    unequip = gun.Unequipped:Connect(@native function()
+        if debounce then return end
+        debounce = true
+        self = nil
+        IsEquipped = false
+        CurrentModule = nil
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
+        Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
+        Player.Character:WaitForChild("Humanoid").WalkSpeed = og
+
+
+        if IsMobile then
+            Player.PlayerGui.MobileUI.Enabled = false
+        end;
+
+        if ActiveConnection then
+            ActiveConnection:Disconnect()
+            ActiveConnection = nil
+        end;
+
+        if Deactivated then
+            Deactivated:Disconnect()
+            Deactivated = nil
+        end;
+        CleanAnimations()
+        CurrentAnimations = {}
+        ResetWeaponState(false)
+        debounce = false
+    end);
 end;
+
+
+
 
 UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
 	if gameProcessedEvent == true then 
@@ -540,38 +585,36 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
 end);
 
 
-ClientRemote.OnClientEvent:Connect(mkHitEffects)
-local Players = game:GetService("Players")
-local CollectionService = game:GetService("CollectionService")
-local Player = Players.LocalPlayer
+local EquippedTools = {}
+
 @native function added(character)
-	character.ChildAdded:Connect(@native function(child: Tool)
-		if child:IsA("Tool") and CollectionService:HasTag(child, "Firearm") then
-			child.Equipped:Connect(@native function()
-                InitWeapon(child)
-			end);
-		end;
-	end);
+
+    EquippedTools[Player.UserId] = {}
+
+    character.ChildAdded:Connect(@native function(child: Tool)
+        if child:IsA("Tool") then
+            child.Equipped:Connect(@native function()
+                CheckAndInitWeapon(child)
+                if table.find(EquippedTools[Player.UserId], child) then 
+                    return
+                end
+                table.insert(EquippedTools[Player.UserId], child)
+                thesus(child)
+            end);
+        end;
+    end);
+
+    character:WaitForChild("Humanoid").Died:Connect(@native function()
+        EquippedTools[Player.UserId] = {}
+    end);
 end;
+
 
 if Player.Character then
-	added(Player.Character)
-end;
+    added(char)
+end
 
-
-Player.CharacterAdded:Connect(@native function(character: Model) 
-    task.defer(@native function()
-        task.wait(3)
-        for _,v in Player.Backpack:GetChildren() do
-            thesus(v)
-        end
-        for _,v in Player.Character:GetChildren() do
-            if v:IsA("Tool") then
-                thesus(v)
-            end
-        end
-   end)
-end)
 
 Player.CharacterAdded:Connect(added)
+ClientRemote.OnClientEvent:Connect(mkHitEffects)
 return FirearmClient
