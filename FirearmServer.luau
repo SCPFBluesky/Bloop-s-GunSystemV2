@@ -1,3 +1,4 @@
+
 --[[
 	FirearmServer.Luau
 	--------------------
@@ -48,6 +49,14 @@ local Settings = {
 -- M A I N   S C R I P T --
 ---------------------------
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  GetTeamPriority
+	 @Author :        @SCPF_RedSky
+	 @Description :   Gets the player and the player's PriorityLevel in the module
+	 @Params : 	      string: teamName - The team name, player: PlayerWhoFired - Any player who shot the gun
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function GetTeamPriority(teamName: string, PlayerWhoFired: Player)
 	for priorityLevel, teams in pairs(TeamPriorityModule) do
 		for _, team in ipairs(teams) do
@@ -67,7 +76,15 @@ local Settings = {
 	return nil
 end;
 
-@native function TeamCheck(PlayerWhoFired: any, targetPlr: any, gun: Tool)
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  TeamCheck
+	 @Author :        @SCPF_RedSky
+	 @Description :   Teamchecks the players
+	 @Params : 	      Player: PlayerWhoFired - The player who fired the gun, any: targetPlr - The player who got shot, Tool: the player's gun
+	--------------------------------------------------------------------------------------------------
+--]]
+@native function TeamCheck(PlayerWhoFired: Player, targetPlr: any, gun: Tool)
 	-- this is old and i dont care lol
 	local playerTeam = PlayerWhoFired.Team.Name
 	local targetTeam = targetPlr.Team.Name
@@ -149,17 +166,35 @@ end;
 	return ClearToDamage
 end;
 
-@native function Reload(player: Player, self: any)
+
+
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  Reload
+	 @Author :        @SCPF_RedSky
+	 @Description :   Server sides the reload sounds
+	 @Params : 	      any: self - the players gun
+	--------------------------------------------------------------------------------------------------
+--]]
+@native function Reload(self: any)
 	local sound = self.Handle.Muzzle.Reload
 	sound:Play()
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  Fire
+	 @Author :        @SCPF_RedSky
+	 @Description :   Handles hit detection
+	 @Params : 	      no
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function Fire(player: any, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: any)
 	local self = gun
 	if self == nil or self:IsDescendantOf(workspace) == false or player.Character.Humanoid.Health == 0 then return end
 	if arg == "Discharge" then
 	--	local s = os.clock()
-		local FireSound: Sound = self.Handle.Muzzle:FindFirstChild("FireSound") or self.Handle.Muzzle.Fire:Clone()
+		local FireSound = self.Handle.Muzzle:FindFirstChild("FireSound") or self.Handle.Muzzle.Fire:Clone()
 		FireSound.Parent = self.Handle
 		FireSound.TimePosition = 0
 		FireSound.PlaybackSpeed = 1
@@ -198,6 +233,14 @@ end;
 
 ReloadRemote.OnServerEvent:Connect(Reload)
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  OnServerEvent (https://create.roblox.com/docs/reference/engine/classes/RemoteEvent#OnServerEvent)
+	 @Author :        @SCPF_RedSky
+	 @Description :   Inits the remote event
+	 @Params : 	      alot.
+	--------------------------------------------------------------------------------------------------
+--]]
 Remote.OnServerEvent:Connect(@native function(player: Player, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: Vector3) 
 	ClientRemote:FireAllClients("DisplayEffects", gun, muzzlePosition, finalHitPosition, raycastResult)
 	
