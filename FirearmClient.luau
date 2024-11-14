@@ -1,3 +1,4 @@
+
 --[[
 	FirearmClient.Luau
 	--------------------
@@ -84,19 +85,22 @@ local Settings = {
 ---------------------------
 
 
-@native function BindToTag(Tag: string, Function: (Instance) -> ()): RBXScriptConnection
-    for _, Value in CollectionService:GetTagged(Tag) do
-        task.spawn(Function, Value)
-    end;
 
-    return CollectionService:GetInstanceAddedSignal(Tag):Connect(Function)
-end;
+
 
 
 if UserInputService.TouchEnabled == true then
     IsMobile = true
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  RPM
+	 @Author :        whoevermadefegunkit
+	 @Description :   Custom wait 
+	 @Params : 	      number: TimeToWait - Total time to wait
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function RPM(TimeToWait: number)
     -- helps fixes firedelay
     if TimeToWait ~= nil then
@@ -110,6 +114,15 @@ end;
     end
 end
 
+
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  ResetWeaponState
+	 @Author : @SCPF_RedSky
+	 @Description : Resets all state control to default values
+	 @Params : 	 boolean: IsReset - Resets ammo
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function ResetWeaponState(isReset: boolean)
     if isReset then
         --warn("is true")
@@ -135,7 +148,14 @@ end
 end;
 
 
-
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  Reload
+	 @Author :        @SCPF_RedSky
+	 @Description :   Function to reload the weapon
+	 @Params : 	      None
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function Reload()
     if IsEquipped == false then return end;
 
@@ -161,6 +181,14 @@ end;
 
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  Holster
+	 @Author :        @SCPF_RedSky
+	 @Description :   Holsters the user's current weapon
+	 @Params : 	      None
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function Holster()
     --if IsEquipped == false then return end
     if not self or not Player.Character or not Player.Character:FindFirstChild("Humanoid") or Player.Character.Humanoid.Health <= 0 or IsReloading then
@@ -219,19 +247,30 @@ for _,v in ipairs(workspace:GetDescendants()) do
     end
 end
 
+
 local WallShootRayParams = RaycastParams.new()
 WallShootRayParams.RespectCanCollide = true
 WallShootRayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 WallShootRayParams.IgnoreWater = true
 
+
 @native function islaoded()
     return Player.Character and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0
 end;
+
 
 @native function canfire()
     return self and islaoded() and not IsReloading and not IsLowered
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  RealFire
+	 @Author :        @SCPF_RedSky
+	 @Description :   Shoots the user's current gun
+	 @Params : 	      Tool: Gun - The gun to shoot
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function RealFire(gun: Tool)
     if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 then return end;
     CurrentModule.Ammo -= 1
@@ -276,7 +315,14 @@ end;
 end;
 
 
-
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  mkHitEffects
+	 @Author :        @SCPF_RedSky
+	 @Description :   Handles muzzle, blood, ground effects for the gun system
+	 @Params : 	      Action: string - exists for no reason Tool: Gun - The players gun MuzzlePosition: Vector3 - The players muzzle position, HitPos: Vector3 - RaycastHit, RayReult: any - Raycast Result
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function mkHitEffects(action: string, gun: Tool, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
     if action ~= "DisplayEffects" then return end;
 
@@ -361,6 +407,14 @@ end)]]
 --  C O N N E C T I O N S  --
 ---------------------------
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  CheckAndInitWeapon
+	 @Author :        @SCPF_RedSky
+	 @Description :   Looks up the gun and inits it if found in the "Dictionary" Module
+	 @Params : 	      Tool: Tool - The equipped tool to init \ check
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function CheckAndInitWeapon(tool: Tool)
     if Dic[tool.Name] then
         -- warn("passed checks")
@@ -368,6 +422,14 @@ end)]]
     end;
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  InitWeapon
+	 @Author :        @SCPF_RedSky
+	 @Description :   Initializes the weapon
+	 @Params : 	      Tool: Tool - The equipped weapon to init
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function InitWeapon(gun: Tool)
     -- warn("init called")
     if not Player.Character or Player.Character:WaitForChild("Humanoid").Health <= 0 then return end
@@ -498,7 +560,14 @@ end;
 
 
 
-
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
+	 @Author :        @SCPF_RedSky
+	 @Description :   M249 Crawling
+	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
+	--------------------------------------------------------------------------------------------------
+--]]
 UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
     if gameProcessedEvent == true then 
         return 
@@ -531,7 +600,14 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
 end);
 
 
-
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  GetPropertyChangedSignal (https://create.roblox.com/docs/reference/engine/classes/Instance#GetPropertyChangedSignal)
+	 @Author :        @SCPF_RedSky
+	 @Description :   Prevents users from walking during crawl
+	 @Params : 	      None
+	--------------------------------------------------------------------------------------------------
+--]]
 Player.Character:WaitForChild("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):Connect(@native function()
     if IsCrawled == true then
         Player.Character:WaitForChild("Humanoid").WalkSpeed = 0
@@ -549,7 +625,14 @@ end);
     end;
 end;
 
-
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  MouseButton1Click (https://create.roblox.com/docs/reference/engine/classes/GuiButton#MouseButton1Click)
+	 @Author :        @SCPF_RedSky
+	 @Description :   (Mobile) Reload
+	 @Params : 	      boolean: gameProcessedEvent - GPE
+	--------------------------------------------------------------------------------------------------
+--]]
 ReloadButton.MouseButton1Click:Connect(@native function(gpe: boolean) 
     if IsEquipped == false then return end;  -- just double checking
     if IsCrawled == true then return end
@@ -557,6 +640,14 @@ ReloadButton.MouseButton1Click:Connect(@native function(gpe: boolean)
     Reload()
 end);
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  MouseButton1Click (https://create.roblox.com/docs/reference/engine/classes/GuiButton#MouseButton1Click)
+	 @Author :        @SCPF_RedSky
+	 @Description :   (Mobile) Holster
+	 @Params : 	      boolean: gameProcessedEvent - GPE
+	--------------------------------------------------------------------------------------------------
+--]]
 LowerButton.MouseButton1Click:Connect(@native function(gpe: boolean) 
     if IsEquipped == false then return end;  -- just double checking
     if IsCrawled == true then return end
@@ -564,6 +655,14 @@ LowerButton.MouseButton1Click:Connect(@native function(gpe: boolean)
     Holster()
 end);
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
+	 @Author :        @SCPF_RedSky
+	 @Description :   (PC) Reload
+	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
+	--------------------------------------------------------------------------------------------------
+--]]
 UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
     if gameProcessedEvent == true then
         return
@@ -575,6 +674,14 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
     end;
 end);
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
+	 @Author :        @SCPF_RedSky
+	 @Description :   (PC) Holster
+	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
+	--------------------------------------------------------------------------------------------------
+--]]
 UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
     if IsEquipped == false then return end
     if IsCrawled == true then return end
@@ -610,7 +717,7 @@ local function handleTool(child)
 end
 
 local function added()
-  --  warn("called")
+    --  warn("called")
     local char = Player.Character
     char.ChildAdded:Connect(handleTool)
 end
