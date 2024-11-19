@@ -176,8 +176,8 @@ end;
 	 @Params : 	      any: self - the players gun
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function Reload(self: any)
-	local sound = self.Handle.Muzzle.Reload
+@native function Reload(plr: any, gun: any)
+	local sound = gun.Handle.Muzzle.Reload
 	sound:Play()
 end;
 
