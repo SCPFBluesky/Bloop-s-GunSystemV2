@@ -157,29 +157,32 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function Reload()
-    if IsEquipped == false then return end;
-
-    if not self or not Player.Character or not Player.Character:FindFirstChild("Humanoid") or Player.Character.Humanoid.Health <= 0 or IsReloading then
+    if not IsEquipped or not self or not Player.Character or not Player.Character:FindFirstChild("Humanoid") or Player.Character.Humanoid.Health <= 0 or IsReloading then
         return
-    end;
+    end
 
-    if IsLowered == true then return end;
-    if CurrentModule.Ammo == CurrentModule.MaxAmmo then return end;
-
+    if IsLowered or CurrentModule.Ammo == CurrentModule.MaxAmmo then return end
+do
+    CurrentModule.Ammo = 0
     ReloadRemote:FireServer(self)
     CurrentAnimations.Reload:Play(0.2)
     IsReloading = true
+end
 
-    if CurrentModule and self then
-        CurrentModule.Ammo = 0
-        CurrentModule.Ammo = CurrentModule.MaxAmmo
-    end
-
-    CurrentAnimations.Reload.Ended:Wait()
-    --task.wait(CurrentGun.Handle.Muzzle.Reload.TimeLength - 0.4)
-    IsReloading = false
-
+    task.spawn(@native function()
+        CurrentAnimations.Reload.Ended:Wait()
+        if IsEquipped then
+            if CurrentModule then
+                CurrentModule.Ammo = CurrentModule.MaxAmmo
+            end
+            IsReloading = false
+        else
+            CurrentAnimations.Reload:Stop()
+            IsReloading = false
+        end;
+    end);
 end;
+
 
 --[[
 	--------------------------------------------------------------------------------------------------
@@ -248,11 +251,6 @@ for _,v in ipairs(workspace:GetDescendants()) do
 end
 
 
-local WallShootRayParams = RaycastParams.new()
-WallShootRayParams.RespectCanCollide = true
-WallShootRayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
-WallShootRayParams.IgnoreWater = true
-
 
 @native function islaoded()
     return Player.Character and Player.Character:FindFirstChild("Humanoid") and Player.Character.Humanoid.Health > 0
@@ -281,8 +279,6 @@ end;
         CFrame.fromOrientation(math.rad(RNG:NextNumber(MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE)), 0, 0)
     ).LookVector
 
-    local WallShootDirection = char.HumanoidRootPart.CFrame.LookVector * 3.5
-    local WallShootRaycast = workspace:Raycast(char.HumanoidRootPart.Position, WallShootDirection, WallShootRayParams)
 
     local raycastResult = workspace:Raycast(cameraRay.Origin, spreadDirection * CONST_RANGE, RayParams)
     local aimPoint = raycastResult and raycastResult.Position or (cameraRay.Origin + spreadDirection * CONST_RANGE)
@@ -301,12 +297,6 @@ end;
         finalHitPos = aimPoint
     end;
 
-    if WallShootRaycast then
-        finalRaycastResult = WallShootRaycast
-        finalHitPos = WallShootRaycast.Position
-        bulletDirection = Vector3.new(0,0,0)
-        aimPoint = Vector3.new(0,0,0)
-    end;
 
     Remote:FireServer(gun, "Discharge", muzzlePos, bulletDirection, CurrentModule.Damage, finalHitPos, {
         Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
