@@ -20,7 +20,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 
-local FirearmShared = game.ReplicatedStorage:WaitForChild("FirearmShared")
+local FirearmShared = game:GetService("ReplicatedStorage"):WaitForChild("FirearmShared")
 local Remote = FirearmShared.Remotes.Main
 --local Remote = BridgeNet.CreateBridge("Main")
 local ClientRemote = FirearmShared.Remotes.Client
@@ -32,7 +32,7 @@ local HitEffects = FirearmShared.Stuff.Effects
 local FlashRemote = FirearmShared.Remotes.Flashlight
 
 local FirearmClient = {}
-local Player = game.Players.LocalPlayer
+local Player = game:GetService("Players").LocalPlayer
 local char = Player.Character or Player.CharacterAdded:Wait()
 
 local IsReloading, IsLowered, IsMobile, IsEquipped, IsButtonDown, alreadyfiring, FlashEnabled, AlreadyCloned, IsCrawled = false, false, false, false, false, false, false, false, false
@@ -162,12 +162,12 @@ end;
     end
 
     if IsLowered or CurrentModule.Ammo == CurrentModule.MaxAmmo then return end
-do
-    CurrentModule.Ammo = 0
-    ReloadRemote:FireServer(self)
-    CurrentAnimations.Reload:Play(0.2)
-    IsReloading = true
-end
+    do
+        CurrentModule.Ammo = 0
+        ReloadRemote:FireServer(self)
+        CurrentAnimations.Reload:Play(0.2)
+        IsReloading = true
+    end
 
     task.spawn(@native function()
         CurrentAnimations.Reload.Ended:Wait()
@@ -212,23 +212,6 @@ end;
 end;
 
 
-
-
---[[@native function CheckBlacklist()
-	RayIgnore = {}
-	for _, v in game.Workspace:GetDescendants() do
-		if v:IsA("Accessory") or v:HasTag("RayIgnore") then
-			v:AddTag("RayIgnore")
-			table.insert(RayIgnore, v)
-		end
-		--RayParams.FilterDescendantsInstances = {Player.Character, RayIgnore}
-	end
-end]]
-
---[[task.defer(@native function()
-	task.wait(3)
-	CheckBlacklist()
-end)]]
 
 
 local function getIgnorelist(items: any)
@@ -319,11 +302,11 @@ end;
     local muzzle = gun:FindFirstChild("Handle") and gun.Handle:FindFirstChild("Muzzle")
     if muzzle then
         if Settings.ShowMuzzleEffects == true then
-            for _, effect in pairs(game.ReplicatedStorage.FirearmShared.Stuff.Muzzle:GetChildren()) do
+            for _, effect in pairs(game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle:GetChildren()) do
                 local clonedEffect = effect:Clone()
                 clonedEffect.Parent = muzzle
                 if clonedEffect:IsA("ParticleEmitter") then clonedEffect:Emit(15) end
-                game.Debris:AddItem(clonedEffect, clonedEffect.Name == "Light" and 0.1 or 3)
+                game:GetService("Debris"):AddItem(clonedEffect, clonedEffect.Name == "Light" and 0.1 or 3)
             end;
         end;
     end;
@@ -342,7 +325,7 @@ end;
     else
         attach.Flash:Emit(20)
         attach.Smoke:Emit(20)
-        game.Debris:AddItem(attach, attach.Smoke.Lifetime.Max + 0.1)
+        game:GetService("Debris"):AddItem(attach, attach.Smoke.Lifetime.Max + 0.1)
     end;
 end;
 
