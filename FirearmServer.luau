@@ -242,8 +242,16 @@ ReloadRemote.OnServerEvent:Connect(Reload)
 	--------------------------------------------------------------------------------------------------
 --]]
 Remote.OnServerEvent:Connect(@native function(player: Player, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: Vector3) 
+    local Module = Dictionary[tostring(gun)]
+
+    local DebouncedRate = tick() 
+    local WeaponRPM = Module.RPM
+    local FireCooldown = WeaponRPM
+    if os.time() - DebouncedRate < FireCooldown then
+        return  
+    end
 	ClientRemote:FireAllClients("DisplayEffects", gun, muzzlePosition, finalHitPosition, raycastResult)
-	
+    
 	Fire(player, gun, arg, muzzlePosition, bulletDirection, dmg, finalHitPosition, raycastResult)
 end);
 
