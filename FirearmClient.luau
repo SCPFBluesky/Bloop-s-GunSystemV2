@@ -254,6 +254,11 @@ end;
 --]]
 @native function RealFire(gun: Tool)
     if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 then return end;
+    local FirearmCooldown = CurrentModule.RPM
+    if tick() - DebouncedRate < FirearmCooldown then
+        return  
+    end
+    DebouncedRate = tick() 
     CurrentModule.Ammo -= 1
 
     local cameraRay = workspace.CurrentCamera:ScreenPointToRay(Mouse.X, Mouse.Y)
