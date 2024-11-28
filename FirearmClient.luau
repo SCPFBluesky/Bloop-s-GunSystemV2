@@ -1,4 +1,5 @@
 
+
 --[[
 	FirearmClient.Luau
 	--------------------
@@ -555,7 +556,7 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
         if IsReloading == true then return end
         if IsLowered  ==  true then return end
         --if not alreadyfiring then return end 
-        if self.Name == "M249" then
+        if self.Name == "M249" or self.Name == "M240" or self.Name == "MSG90" then
             IsCrawled = not IsCrawled
             if IsCrawled == true then
                 Player.CameraMaxZoomDistance = 7
