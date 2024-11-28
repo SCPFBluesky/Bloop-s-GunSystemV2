@@ -242,6 +242,7 @@ ReloadRemote.OnServerEvent:Connect(Reload)
 	--------------------------------------------------------------------------------------------------
 --]]
 Remote.OnServerEvent:Connect(@native function(player: Player, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: Vector3) 
+    
     ClientRemote:FireAllClients("DisplayEffects", gun, muzzlePosition, finalHitPosition, raycastResult)
 
     Fire(player, gun, arg, muzzlePosition, bulletDirection, dmg, finalHitPosition, raycastResult)
