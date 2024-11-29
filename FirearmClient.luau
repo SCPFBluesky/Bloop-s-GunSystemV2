@@ -22,7 +22,8 @@ local RunService = game:GetService("RunService")
 
 
 local FirearmShared = game:GetService("ReplicatedStorage"):WaitForChild("FirearmShared")
-local Remote = FirearmShared.Remotes.Main
+local packet = require(game:GetService("ReplicatedStorage").packet)
+local packet2 = require(game:GetService("ReplicatedStorage").packet2)
 --local Remote = BridgeNet.CreateBridge("Main")
 local ClientRemote = FirearmShared.Remotes.Client
 --local ClientRemote = BridgeNet.CreateBridge("Client")
@@ -93,28 +94,6 @@ local Settings = {
 if UserInputService.TouchEnabled == true then
     IsMobile = true
 end;
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name : 	 	  RPM
-	 @Author :        whoevermadefegunkit
-	 @Description :   Custom wait 
-	 @Params : 	      number: TimeToWait - Total time to wait
-	--------------------------------------------------------------------------------------------------
---]]
-@native function RPM(TimeToWait: number)
-    -- helps fixes firedelay
-    if TimeToWait ~= nil then
-        local TotalTime = 0
-        TotalTime = TotalTime + game:GetService("RunService").Heartbeat:wait()
-        while TotalTime < TimeToWait do
-            TotalTime = TotalTime + game:GetService("RunService").Heartbeat:wait()
-        end
-    else
-        game:GetService("RunService").Heartbeat:wait()
-    end
-end
-
 
 --[[
 	--------------------------------------------------------------------------------------------------
@@ -253,7 +232,7 @@ end;
 	 @Params : 	      Tool: Gun - The gun to shoot
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function RealFire(gun: Tool)
+@native function RealFire(gun: any)
     if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 then return end;
     local FirearmCooldown = CurrentModule.RPM
     if tick() - DebouncedRate < FirearmCooldown then
@@ -285,12 +264,29 @@ end;
     else
         finalHitPos = aimPoint
     end;
-
-
-    Remote:FireServer(gun, "Discharge", muzzlePos, bulletDirection, CurrentModule.Damage, finalHitPos, {
+    local RayResult = {
         Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
         Normal = finalRaycastResult and finalRaycastResult.Normal or nil
+    }
+
+    packet.discharge.send({
+        -- if anyone could understand the pain no one will.
+        -- I hope this was worth it, Seriously.
+        gun = gun,                             
+        action = "Discharge",                    
+        muzzlePos = muzzlePos,                   
+        bulletDirection = bulletDirection,        
+        damage = CurrentModule.Damage,           
+        finalHitPos = finalHitPos,              
+        hitInfo = RayResult or nil                        
     })
+
+
+
+    --[[Remote:FireServer(gun, "Discharge", muzzlePos, bulletDirection, CurrentModule.Damage, finalHitPos, {
+        Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
+        Normal = finalRaycastResult and finalRaycastResult.Normal or nil
+    })]]
 end;
 
 
@@ -302,7 +298,8 @@ end;
 	 @Params : 	      Action: string - exists for no reason Tool: Gun - The players gun MuzzlePosition: Vector3 - The players muzzle position, HitPos: Vector3 - RaycastHit, RayReult: any - Raycast Result
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function mkHitEffects(action: string, gun: Tool, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
+@native function mkHitEffects(action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
+    --warn(rayresult)
     if action ~= "DisplayEffects" then return end;
 
     local muzzle = gun:FindFirstChild("Handle") and gun.Handle:FindFirstChild("Muzzle")
@@ -313,12 +310,28 @@ end;
                 clonedEffect.Parent = muzzle
                 if clonedEffect:IsA("ParticleEmitter") then clonedEffect:Emit(15) end
                 game:GetService("Debris"):AddItem(clonedEffect, clonedEffect.Name == "Light" and 0.1 or 3)
-            end;
-        end;
-    end;
+            end
+        end
+    end
 
-    if not (rayresult and hitPos and rayresult.Normal) then return end;
 
+    if not rayresult or not rayresult.Instance or not rayresult.Normal then
+        return  
+    end
+    if hitPos == nil then
+        return
+    end
+    
+    if typeof(rayresult.Instance) ~= "Instance" or typeof(rayresult.Normal) ~= "Vector3" then
+       -- warn("this really got me thinking if this is worth it or not")
+        return
+    end
+
+    if hitPos == nil or typeof(hitPos) ~= "Vector3" then
+        --warn("KJFWEFWEFEWKLWEFQ LINE 350")
+        return
+    end
+    
     local attach = HitEffects.Effects:Clone()
     attach.Parent = workspace.Terrain
     attach.CFrame = CFrame.new(hitPos, hitPos + rayresult.Normal)
@@ -327,13 +340,31 @@ end;
     if hithuam then
         if Settings.ShowBlood == true then
             attach.Blood:Emit(20)
-        end;
+        end
     else
         attach.Flash:Emit(20)
         attach.Smoke:Emit(20)
         game:GetService("Debris"):AddItem(attach, attach.Smoke.Lifetime.Max + 0.1)
-    end;
-end;
+    end
+end
+
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  Listen (https://ffrostfall.github.io/ByteNet/api/functions/definePacket/)
+	 @Author :        @SCPF_RedSky
+	 @Description :   Inits the remote event
+	 @Params : 	      any: data the data that got sent to the fake remote
+	--------------------------------------------------------------------------------------------------
+--]]
+packet2.MKHitEffects.listen(@native function(data: any)
+    local action = data.action
+    local gun = data.gun
+    local muzzlePos = data.muzzlePos
+    local hitPos = data.hitPos
+    local rayresult = data.rayresult
+
+    mkHitEffects(action, gun, muzzlePos, hitPos, rayresult)
+end)
 
 
 --[[function StartFiring()
@@ -419,14 +450,6 @@ end;
     local LastWeapon = nil
     local ActiveConnection, Deactivated
 
-    @native local function CleanAnimations()
-        for _, anim in pairs(CurrentAnimations) do
-            if anim then
-                anim:Stop()
-                anim:Destroy() 
-            end;
-        end;
-    end;
 
     equip = gun.Equipped:Connect(@native function()
         if debounce or gun == LastWeapon then return end
@@ -443,8 +466,10 @@ end;
         self = gun
         CurrentModule = Dic[tostring(gun)]
 
-        CleanAnimations()
-        CurrentAnimations = {}
+        for _,v in CurrentAnimations do
+            v:Stop()
+        end
+        table.clear(CurrentAnimations)
 
         for name, Id in pairs(CurrentModule.Animations) do
             local newAnimation = Instance.new("Animation")
@@ -477,7 +502,8 @@ end;
                     RealFire(self)
 
                     if CurrentModule and CurrentModule.RPM then
-                        RPM(CurrentModule.RPM)
+                        task.wait(CurrentModule.RPM)
+                       -- RPM(CurrentModule.RPM)
                     end;
 
                     alreadyfiring = false
@@ -530,8 +556,10 @@ end;
             Deactivated:Disconnect()
             Deactivated = nil
         end;
-        CleanAnimations()
-        CurrentAnimations = {}
+        for _,v in CurrentAnimations do
+            v:Stop()
+        end
+        table.clear(CurrentAnimations)
         ResetWeaponState(false)
         debounce = false
     end);
@@ -556,7 +584,7 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
         if IsReloading == true then return end
         if IsLowered  ==  true then return end
         --if not alreadyfiring then return end 
-        if self.Name == "M249" or self.Name == "M240" or self.Name == "MSG90" then
+        if CurrentModule.CanCrawl then
             IsCrawled = not IsCrawled
             if IsCrawled == true then
                 Player.CameraMaxZoomDistance = 7
