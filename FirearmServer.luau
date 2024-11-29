@@ -9,7 +9,7 @@
 --]]
 
 --!native
---!strict
+--!nonstrict
 
 ---------------------------
 --   V A R I A B L E S   --
@@ -20,7 +20,8 @@ local Players = game:GetService("Players")
 
 local IsCloned, IsEnabled = false,false
 
-local Remote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Main
+local packet = require(game:GetService("ReplicatedStorage").packet)
+local packet2 = require(game:GetService('ReplicatedStorage').packet2)
 --local Remote = BridgeNet.CreateBridge("Main")
 local ClientRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Client
 --local ClientRemote = BridgeNet.CreateBridge("Client")
@@ -86,6 +87,12 @@ end;
 --]]
 @native function TeamCheck(PlayerWhoFired: Player, targetPlr: any, gun: Tool)
     -- this is old and i dont care lol
+    if Settings.AlwaysDamage == true and not (PlayerWhoFired == targetPlr) then
+        return true
+    end;
+    if PlayerWhoFired.Team == nil then
+        return
+    end
     local playerTeam = PlayerWhoFired.Team.Name
     local targetTeam = targetPlr.Team.Name
 
@@ -93,10 +100,6 @@ end;
     local targetPriority = GetTeamPriority(targetTeam, PlayerWhoFired)
 
     local ClearToDamage = false
-
-    if Settings.AlwaysDamage == true and not (PlayerWhoFired == targetPlr) then
-        return true
-    end;
 
     if PlayerWhoFired == targetPlr then
         return false
@@ -202,10 +205,22 @@ end;
         game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
 
 
+        if typeof(raycastResult.Instance) ~= "Instance" or typeof(raycastResult.Normal) ~= "Vector3" then
+            -- legit will not work without this since when its nil it likes to turn into a random number for somereason so yeah
+            return
+        end;
 
-
+        if finalHitPosition == nil or typeof(finalHitPosition) ~= "Vector3" then
+            return
+        end;
+     
         if raycastResult and finalHitPosition and raycastResult.Normal then
-            local hitInstance = raycastResult.Instance
+            
+           do
+            local hitInstance = raycastResult.Instance or nil
+            if hitInstance == nil then
+                return
+            end
             local hitHumanoid = hitInstance and hitInstance.Parent:FindFirstChild("Humanoid")
 
             local hitModel = hitInstance:FindFirstAncestor("173")
@@ -221,8 +236,9 @@ end;
 
                 if targetPlayer == nil or TeamCheck(player, targetPlayer, self) then
                     hitHumanoid:TakeDamage(dmg)
+                    end;
                 end;
-            end;
+              end;
         end;
 
         --print((os.clock()-s)*1e+6, "μs")
@@ -235,18 +251,50 @@ ReloadRemote.OnServerEvent:Connect(Reload)
 
 --[[
 	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  OnServerEvent (https://create.roblox.com/docs/reference/engine/classes/RemoteEvent#OnServerEvent)
+	 @Event : 	 	  Listen (https://ffrostfall.github.io/ByteNet/api/functions/definePacket/)
 	 @Author :        @SCPF_RedSky
 	 @Description :   Inits the remote event
-	 @Params : 	      alot.
+	 @Params : 	      any: data the data that got sent to the fake remote, player: player - the playedr!!!!
 	--------------------------------------------------------------------------------------------------
 --]]
-Remote.OnServerEvent:Connect(@native function(player: Player, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: Vector3) 
+packet.discharge.listen(@native function(data: any, player: Player?)  -- please work im begging you
+    local gun = data.gun
+    local MuzzlePos = data.muzzlePos
+    local HitPos = data.finalHitPos
+    local RayCastResult = data.hitInfo
+
+
+    packet2.MKHitEffects.sendToAll({
+        action = "DisplayEffects",
+        gun = gun,
+        muzzlePos = MuzzlePos,
+        hitPos = HitPos,
+        rayresult = {
+            Instance = RayCastResult.Instance, 
+            Normal = RayCastResult.Normal    
+        }
+    })
+
+    Fire(
+        player,
+        data.gun,
+        data.action,
+        data.muzzlePos,
+        data.bulletDirection,
+        data.damage,
+        data.finalHitPos,
+        data.hitInfo
+    )
+end)
+
+
+
+--[[Remote.OnServerEvent:Connect(@native function(player: Player, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: Vector3) 
     
     ClientRemote:FireAllClients("DisplayEffects", gun, muzzlePosition, finalHitPosition, raycastResult)
 
     Fire(player, gun, arg, muzzlePosition, bulletDirection, dmg, finalHitPosition, raycastResult)
-end);
+end);]]
 
 
 return FirearmServer
