@@ -321,9 +321,9 @@ end;
     if hitPos == nil then
         return
     end
-    
+
     if typeof(rayresult.Instance) ~= "Instance" or typeof(rayresult.Normal) ~= "Vector3" then
-       -- warn("this really got me thinking if this is worth it or not")
+        -- warn("this really got me thinking if this is worth it or not")
         return
     end
 
@@ -331,7 +331,7 @@ end;
         --warn("KJFWEFWEFEWKLWEFQ LINE 350")
         return
     end
-    
+
     local attach = HitEffects.Effects:Clone()
     attach.Parent = workspace.Terrain
     attach.CFrame = CFrame.new(hitPos, hitPos + rayresult.Normal)
@@ -432,6 +432,7 @@ end)]]
     end;
 end;
 
+
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  InitWeapon
@@ -441,170 +442,139 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function InitWeapon(gun: Tool)
-    -- warn("init called")
     if not Player.Character or Player.Character:WaitForChild("Humanoid").Health <= 0 then return end
     ResetWeaponState(false)
 
     local equip, unequip
-    local debounce = false
-    local LastWeapon = nil
     local ActiveConnection, Deactivated
 
+    if equip then equip:Disconnect() end
+    if unequip then unequip:Disconnect() end
+
+    @native local function CleanUpConnections()
+        if equip then equip:Disconnect() equip = nil end
+        if unequip then unequip:Disconnect() unequip = nil end
+        if ActiveConnection then ActiveConnection:Disconnect() ActiveConnection = nil end
+        if Deactivated then Deactivated:Disconnect() Deactivated = nil end
+    end
 
     equip = gun.Equipped:Connect(@native function()
-        if debounce or gun == LastWeapon then return end
-        debounce = true
-        LastWeapon = gun
         ResetWeaponState(false)
-
         og = Player.Character:WaitForChild("Humanoid").WalkSpeed
         IsEquipped = true
 
         local char = Player.Character or Player.CharacterAdded:Wait()
         local hum = char:WaitForChild("Humanoid")
+        local Animator: Animator = hum.Animator
 
         self = gun
         CurrentModule = Dic[tostring(gun)]
 
-        for _,v in CurrentAnimations do
-            v:Stop()
+        for name, anim in pairs(CurrentAnimations) do
+            if anim then
+                anim:Stop()
+                anim:Destroy()
+                CurrentAnimations[name] = nil
+            end
         end
+
         table.clear(CurrentAnimations)
 
         for name, Id in pairs(CurrentModule.Animations) do
-            local newAnimation = Instance.new("Animation")
-            newAnimation.AnimationId = "rbxassetid://" .. Id
-            local loadedAnim = hum:LoadAnimation(newAnimation)
-            CurrentAnimations[name] = loadedAnim
-        end;
+            if not CurrentAnimations[name] then
+                local newAnimation = Instance.new("Animation")
+                newAnimation.AnimationId = "rbxassetid://" .. Id
+                local loadedAnim = Animator:LoadAnimation(newAnimation)
+                CurrentAnimations[name] = loadedAnim
+            end
+        end
 
         if CurrentAnimations.Idle then
             CurrentAnimations.Idle:Play(0.2)
-        end;
+        end
 
         if IsMobile then
             Player.PlayerGui.MobileUI.Enabled = true
-        end;
+        end
 
         RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
         if not ActiveConnection then
             ActiveConnection = self.Activated:Connect(function(gpe: boolean)
-                if not self or not CurrentModule or not IsEquipped or gpe then return end;
+                if not self or not CurrentModule or not IsEquipped or gpe then return end
 
                 IsButtonDown = true
                 while IsButtonDown and IsEquipped and CurrentModule and CurrentModule.Ammo > 0 and self do
-                    if alreadyfiring or not canfire() then return end;
-
-                    if not self or not CurrentModule then return end;
+                    if alreadyfiring or not canfire() then return end
 
                     alreadyfiring = true
                     RealFire(self)
 
                     if CurrentModule and CurrentModule.RPM then
                         task.wait(CurrentModule.RPM)
-                       -- RPM(CurrentModule.RPM)
-                    end;
+                    end
 
                     alreadyfiring = false
-                    if not CurrentModule or not CurrentModule.Automatic then break end;
-                end;
-            end);
-        end;
-
-
-        UserInputService.TouchStarted:Connect(@native function(touch: InputObject, gameProcessedEvent: boolean) 
-            if not gameProcessedEvent then IsButtonDown = true end;
-        end);
-
-        UserInputService.TouchEnded:Connect(@native function(touch: InputObject, gameProcessedEvent: boolean) 
-            if not gameProcessedEvent then IsButtonDown, alreadyfiring = false, false end;
-        end);
+                    if not CurrentModule or not CurrentModule.Automatic then break end
+                end
+            end)
+        end
 
         if not Deactivated then
             Deactivated = self.Deactivated:Connect(@native function(gpe: boolean)
-                if IsEquipped == false or gpe then return end
-                IsButtonDown, alreadyfiring = false, false 
-            end);
-        end;
-
-        debounce = false
-    end);
+                if not IsEquipped or gpe then return end
+                IsButtonDown, alreadyfiring = false, false
+            end)
+        end
+    end)
 
     unequip = gun.Unequipped:Connect(@native function()
-        if debounce then return end
-        debounce = true
+        if self and CurrentModule then if CurrentModule.CanCrawl then
+                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+                Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
+                Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
+                Player.Character:WaitForChild("Humanoid").WalkSpeed = og
+            end
+        end
+        CleanUpConnections()
+
         self = nil
         IsEquipped = false
         CurrentModule = nil
-        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
-        Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
-        Player.Character:WaitForChild("Humanoid").WalkSpeed = og
-
+        
 
         if IsMobile then
             Player.PlayerGui.MobileUI.Enabled = false
-        end;
+        end
 
         if ActiveConnection then
             ActiveConnection:Disconnect()
             ActiveConnection = nil
-        end;
+        end
 
         if Deactivated then
             Deactivated:Disconnect()
             Deactivated = nil
-        end;
-        for _,v in CurrentAnimations do
-            v:Stop()
         end
+
+
+        for name, anim in pairs(CurrentAnimations) do
+            if anim then
+                anim:Stop()
+                anim:Destroy()
+                CurrentAnimations[name] = nil
+            end
+        end
+
         table.clear(CurrentAnimations)
+
         ResetWeaponState(false)
-        debounce = false
-    end);
-end;
+    end)
+end
 
 
 
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
-	 @Author :        @SCPF_RedSky
-	 @Description :   M249 Crawling
-	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
-	--------------------------------------------------------------------------------------------------
---]]
-UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
-    if gameProcessedEvent == true then 
-        return 
-    end;
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.X then
-        if IsEquipped ==  false then return end
-        if IsReloading == true then return end
-        if IsLowered  ==  true then return end
-        --if not alreadyfiring then return end 
-        if CurrentModule.CanCrawl then
-            IsCrawled = not IsCrawled
-            if IsCrawled == true then
-                Player.CameraMaxZoomDistance = 7
-                Player.CameraMinZoomDistance = 7
-                UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-                Player.Character:WaitForChild("Humanoid").WalkSpeed = 0
-                CurrentAnimations.Idle:Stop(0.2)
-                CurrentAnimations.Crawl:Play(0.2)
-            else
-                Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
-                Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
-                Player.CameraMode = Enum.CameraMode.Classic
-                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-                Player.Character:WaitForChild("Humanoid").WalkSpeed = og
-                CurrentAnimations.Crawl:Stop(0.2)
-                CurrentAnimations.Idle:Play(0.2)
-            end;
-        end;
-    end;
-end);
+
 
 
 --[[
