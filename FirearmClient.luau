@@ -574,7 +574,44 @@ end
 
 
 
-
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
+	 @Author :        @SCPF_RedSky
+	 @Description :   M249 Crawling
+	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
+	--------------------------------------------------------------------------------------------------
+--]]
+UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
+    if gameProcessedEvent == true then 
+        return 
+    end;
+    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.X then
+        if IsEquipped ==  false then return end
+        if IsReloading == true then return end
+        if IsLowered  ==  true then return end
+        --if not alreadyfiring then return end 
+        if CurrentModule.CanCrawl then
+            IsCrawled = not IsCrawled
+            if IsCrawled == true then
+                Player.CameraMaxZoomDistance = 7
+                Player.CameraMinZoomDistance = 7
+                UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+                Player.Character:WaitForChild("Humanoid").WalkSpeed = 0
+                CurrentAnimations.Idle:Stop(0.2)
+                CurrentAnimations.Crawl:Play(0.2)
+            else
+                Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
+                Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
+                Player.CameraMode = Enum.CameraMode.Classic
+                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+                Player.Character:WaitForChild("Humanoid").WalkSpeed = og
+                CurrentAnimations.Crawl:Stop(0.2)
+                CurrentAnimations.Idle:Play(0.2)
+            end;
+        end;
+    end;
+end);
 
 
 --[[
