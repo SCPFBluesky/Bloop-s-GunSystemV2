@@ -1,5 +1,7 @@
 # Site 19 Gun System Replica V2
 
+# NOTE I WILL NO LONGER BE PROVIDING .RBXL FILES PLEASE GO HERE FOR RELEASES THE PLACE IS UNCOPYLOCKED IT IS JUST EASY PLEASE JUST DO IT: https://www.roblox.com/games/95481417748754/new-gun-system-test
+
 # A complete and total rewrite from last time!
 
 # This gun system was made to replicate the gun system found in "Site-19 Roleplay" made by AdministratorGnar and ThunderGemios10
