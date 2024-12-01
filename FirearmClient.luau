@@ -301,7 +301,12 @@ end;
 @native function mkHitEffects(action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
     --warn(rayresult)
     if action ~= "DisplayEffects" then return end;
-
+    local FireSound = self.Handle.Muzzle:FindFirstChild("FireSound") or self.Handle.Muzzle.Fire:Clone()
+    FireSound.Parent = self.Handle
+    FireSound.TimePosition = 0
+    FireSound.PlaybackSpeed = 1
+    FireSound:Play()
+    game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
     local muzzle = gun:FindFirstChild("Handle") and gun.Handle:FindFirstChild("Muzzle")
     if muzzle then
         if Settings.ShowMuzzleEffects == true then
