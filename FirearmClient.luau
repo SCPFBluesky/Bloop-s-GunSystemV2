@@ -25,13 +25,13 @@ local FirearmShared = game:GetService("ReplicatedStorage"):WaitForChild("Firearm
 local packet = require(game:GetService("ReplicatedStorage").packet)
 local packet2 = require(game:GetService("ReplicatedStorage").packet2)
 --local Remote = BridgeNet.CreateBridge("Main")
-local ClientRemote = FirearmShared.Remotes.Client
 --local ClientRemote = BridgeNet.CreateBridge("Client")
 local Dic = require(FirearmShared.Dictionary)
 local Tagged = require(FirearmShared.Tagged)
 local ReloadRemote =FirearmShared.Remotes.Reload
 local HitEffects = FirearmShared.Stuff.Effects
 local FlashRemote = FirearmShared.Remotes.Flashlight
+
 
 local FirearmClient = {}
 local Player = game:GetService("Players").LocalPlayer
@@ -268,7 +268,7 @@ end;
         Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
         Normal = finalRaycastResult and finalRaycastResult.Normal or nil
     }
-
+     mkHitEffects("DisplayEffects", self, muzzlePos, finalHitPos, raycastResult)
     packet.discharge.send({
         -- if anyone could understand the pain no one will.
         -- I hope this was worth it, Seriously.
@@ -742,5 +742,4 @@ if Player.Character then
 end
 Player.CharacterAdded:Connect(added)
 
-ClientRemote.OnClientEvent:Connect(mkHitEffects)
 return FirearmClient
