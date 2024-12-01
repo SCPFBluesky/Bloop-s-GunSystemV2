@@ -193,6 +193,11 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function Fire(player: any, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: any)
+    for _,v in gun:GetDescendants() do
+        if v:IsA("BasePart") then
+            v:SetNetworkOwner(player)
+        end
+    end
     local self = gun
     if self == nil or self:IsDescendantOf(workspace) == false or player.Character.Humanoid.Health == 0 then return end
     if arg == "Discharge" then
@@ -264,16 +269,17 @@ packet.discharge.listen(@native function(data: any, player: Player?)  -- please 
     local RayCastResult = data.hitInfo
 
 
-    packet2.MKHitEffects.sendToAll({
+    packet2.MKHitEffects.sendToAllExcept({
         action = "DisplayEffects",
         gun = gun,
         muzzlePos = MuzzlePos,
         hitPos = HitPos,
         rayresult = {
-            Instance = RayCastResult.Instance, 
+            Instance = RayCastResult.Instance,
             Normal = RayCastResult.Normal    
         }
-    })
+    }, player)
+
 
     Fire(
         player,
