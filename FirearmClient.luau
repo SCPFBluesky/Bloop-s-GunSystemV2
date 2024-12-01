@@ -229,10 +229,10 @@ end;
 	 @Name : 	 	  RealFire
 	 @Author :        @SCPF_RedSky
 	 @Description :   Shoots the user's current gun
-	 @Params : 	      Tool: Gun - The gun to shoot
+	 @Params : 	      none
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function RealFire(gun: any)
+@native function RealFire()
     if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 then return end;
     local FirearmCooldown = CurrentModule.RPM
     if tick() - DebouncedRate < FirearmCooldown then
@@ -251,7 +251,7 @@ end;
     local raycastResult = workspace:Raycast(cameraRay.Origin, spreadDirection * CONST_RANGE, RayParams)
     local aimPoint = raycastResult and raycastResult.Position or (cameraRay.Origin + spreadDirection * CONST_RANGE)
 
-    local muzzle = gun:FindFirstChild("Handle") and gun.Handle:FindFirstChild("Muzzle")
+    local muzzle = self:FindFirstChild("Handle") and self.Handle:FindFirstChild("Muzzle")
     if not muzzle then return end;
 
     local muzzlePos = muzzle.WorldPosition
@@ -272,7 +272,7 @@ end;
     packet.discharge.send({
         -- if anyone could understand the pain no one will.
         -- I hope this was worth it, Seriously.
-        gun = gun,                             
+        gun = self,                             
         action = "Discharge",                    
         muzzlePos = muzzlePos,                   
         bulletDirection = bulletDirection,        
@@ -435,6 +435,40 @@ end;
 
 --[[
 	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  Activated
+	 @Author :        @SCPF_RedSky
+	 @Description :   Handles when the player starts to shoot
+	 @Params : 	      None
+	--------------------------------------------------------------------------------------------------
+--]]
+@native function Activated()
+    -- warn("function")
+    IsButtonDown = true
+    while CurrentModule and self and Player.Character and Player.Character.Humanoid.Health > 0 and CurrentModule.Ammo > 0 and not IsReloading and not IsLowered and IsButtonDown do
+        if not self or not CurrentModule then
+            -- warn("Ran return")
+            return
+        end
+
+        if IsButtonDown == false then
+            break
+        end
+
+        --warn("Shooting")
+        alreadyfiring = true
+        task.spawn(RealFire)
+        task.wait(CurrentModule.RPM)
+        if not CurrentModule.Automatic then
+            break
+        end
+    end
+    alreadyfiring = false
+    IsButtonDown = false
+end
+
+
+--[[
+	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  InitWeapon
 	 @Author :        @SCPF_RedSky
 	 @Description :   Initializes the weapon
@@ -446,23 +480,24 @@ end;
     ResetWeaponState(false)
 
     local equip, unequip
-    local ActiveConnection, Deactivated
-
+    local LastWeapon = nil
+    og = char.Humanoid.WalkSpeed
     if equip then equip:Disconnect() end
     if unequip then unequip:Disconnect() end
 
     @native local function CleanUpConnections()
         if equip then equip:Disconnect() equip = nil end
         if unequip then unequip:Disconnect() unequip = nil end
-        if ActiveConnection then ActiveConnection:Disconnect() ActiveConnection = nil end
-        if Deactivated then Deactivated:Disconnect() Deactivated = nil end
     end
 
-    equip = gun.Equipped:Connect(@native function()
-        ResetWeaponState(false)
-        og = Player.Character:WaitForChild("Humanoid").WalkSpeed
-        IsEquipped = true
+    local AnimationCache = {}
 
+    equip = gun.Equipped:Connect(@native function()
+        CleanUpConnections()
+        LastWeapon = gun
+        ResetWeaponState(false)
+
+        IsEquipped = true
         local char = Player.Character or Player.CharacterAdded:Wait()
         local hum = char:WaitForChild("Humanoid")
         local Animator: Animator = hum.Animator
@@ -478,17 +513,15 @@ end;
             end
         end
 
-        table.clear(CurrentAnimations)
-
         for name, Id in pairs(CurrentModule.Animations) do
-            if not CurrentAnimations[name] then
-                local newAnimation = Instance.new("Animation")
-                newAnimation.AnimationId = "rbxassetid://" .. Id
-                local loadedAnim = Animator:LoadAnimation(newAnimation)
-                CurrentAnimations[name] = loadedAnim
+            if not AnimationCache[name] then
+                local NewAnimation = Instance.new("Animation")
+                NewAnimation.AnimationId = "rbxassetid://" .. Id
+                AnimationCache[name] = Animator:LoadAnimation(NewAnimation)
             end
+            CurrentAnimations[name] = AnimationCache[name]
         end
-
+--        warn(CurrentAnimations)
         if CurrentAnimations.Idle then
             CurrentAnimations.Idle:Play(0.2)
         end
@@ -499,36 +532,17 @@ end;
 
         RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
-        if not ActiveConnection then
-            ActiveConnection = self.Activated:Connect(function(gpe: boolean)
-                if not self or not CurrentModule or not IsEquipped or gpe then return end
-
-                IsButtonDown = true
-                while IsButtonDown and IsEquipped and CurrentModule and CurrentModule.Ammo > 0 and self do
-                    if alreadyfiring or not canfire() then return end
-
-                    alreadyfiring = true
-                    RealFire(self)
-
-                    if CurrentModule and CurrentModule.RPM then
-                        task.wait(CurrentModule.RPM)
-                    end
-
-                    alreadyfiring = false
-                    if not CurrentModule or not CurrentModule.Automatic then break end
-                end
-            end)
-        end
-
-        if not Deactivated then
-            Deactivated = self.Deactivated:Connect(@native function(gpe: boolean)
-                if not IsEquipped or gpe then return end
-                IsButtonDown, alreadyfiring = false, false
-            end)
-        end
-    end)
+        self.Activated:Connect(@native function()
+            --warn("activ")
+            Activated()
+        end)
+        self.Deactivated:Connect(@native function()
+            -- warn("deactive")
+            IsButtonDown, alreadyfiring = false, false
+        end)
 
     unequip = gun.Unequipped:Connect(@native function()
+        CleanUpConnections()
         if self and CurrentModule then if CurrentModule.CanCrawl then
                 UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                 Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
@@ -536,41 +550,28 @@ end;
                 Player.Character:WaitForChild("Humanoid").WalkSpeed = og
             end
         end
-        CleanUpConnections()
-
         self = nil
         IsEquipped = false
         CurrentModule = nil
-        
 
         if IsMobile then
             Player.PlayerGui.MobileUI.Enabled = false
         end
 
-        if ActiveConnection then
-            ActiveConnection:Disconnect()
-            ActiveConnection = nil
+       
+        for _, anim in pairs(CurrentAnimations) do
+            anim:Stop()
+            anim:Destroy()
         end
-
-        if Deactivated then
-            Deactivated:Disconnect()
-            Deactivated = nil
-        end
-
-
-        for name, anim in pairs(CurrentAnimations) do
-            if anim then
-                anim:Stop()
-                anim:Destroy()
-                CurrentAnimations[name] = nil
-            end
-        end
-
+ --       warn(CurrentAnimations)
         table.clear(CurrentAnimations)
-
         ResetWeaponState(false)
+         end)
     end)
 end
+
+
+
 
 
 
