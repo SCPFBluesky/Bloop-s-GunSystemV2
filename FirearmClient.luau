@@ -463,8 +463,10 @@ end;
         alreadyfiring = true
         task.spawn(RealFire)
         task.wait(CurrentModule.RPM)
+        if self and CurrentModule then
         if not CurrentModule.Automatic then
             break
+        end
         end
     end
     alreadyfiring = false
