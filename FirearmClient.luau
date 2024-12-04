@@ -1,5 +1,3 @@
-
-
 --[[
 	FirearmClient.Luau
 	--------------------
@@ -12,7 +10,6 @@
 --!native
 --!nonstrict
 
-
 ---------------------------
 --   V A R I A B L E S   --
 ---------------------------
@@ -24,15 +21,12 @@ local RunService = game:GetService("RunService")
 local FirearmShared = game:GetService("ReplicatedStorage"):WaitForChild("FirearmShared")
 local packet = require(game:GetService("ReplicatedStorage").packet)
 local packet2 = require(game:GetService("ReplicatedStorage").packet2)
---local Remote = BridgeNet.CreateBridge("Main")
---local ClientRemote = BridgeNet.CreateBridge("Client")
 local Dic = require(FirearmShared.Dictionary)
 local Tagged = require(FirearmShared.Tagged)
 local ReloadRemote =FirearmShared.Remotes.Reload
 local HitEffects = FirearmShared.Stuff.Effects
 local FlashRemote = FirearmShared.Remotes.Flashlight
 
-local ToolAnimations = {} -- Example [M249] = Idle = etc etc
 local FirearmClient = {}
 local Player = game:GetService("Players").LocalPlayer
 local char = Player.Character or Player.CharacterAdded:Wait()
@@ -173,7 +167,6 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function Holster()
-    --if IsEquipped == false then return end
     if not self or not Player.Character or not Player.Character:FindFirstChild("Humanoid") or Player.Character.Humanoid.Health <= 0 or IsReloading then
         return
     end;
@@ -197,7 +190,7 @@ end;
 local function getIgnorelist(items: any)
     local ignore = Tagged("RayIgnore")
 
-    for _, object in pairs(items) do
+    for _, object in items do
         table.insert(ignore, 1, object)
     end;
 
@@ -205,13 +198,6 @@ local function getIgnorelist(items: any)
 end;
 
 
-local IgnoreWallShooting = {char}
-
-for _,v in ipairs(workspace:GetDescendants()) do
-    if v:FindFirstChild("HumanoidRootPart") then
-        table.insert(IgnoreWallShooting, v)
-    end
-end
 
 
 
@@ -270,7 +256,7 @@ end;
         Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
         Normal = finalRaycastResult and finalRaycastResult.Normal or nil
     }
-     mkHitEffects("DisplayEffects", self, muzzlePos, finalHitPos, raycastResult)
+    mkHitEffects("DisplayEffects", self, muzzlePos, finalHitPos, raycastResult)
     packet.discharge.send({
         -- if anyone could understand the pain no one will.
         -- I hope this was worth it, Seriously.
@@ -282,13 +268,6 @@ end;
         finalHitPos = finalHitPos,              
         hitInfo = RayResult or nil                        
     })
-
-
-
-    --[[Remote:FireServer(gun, "Discharge", muzzlePos, bulletDirection, CurrentModule.Damage, finalHitPos, {
-        Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
-        Normal = finalRaycastResult and finalRaycastResult.Normal or nil
-    })]]
 end;
 
 
@@ -577,10 +556,6 @@ end
 end
 
 
-
-
-
-
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
@@ -597,7 +572,6 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
         if IsEquipped ==  false then return end
         if IsReloading == true then return end
         if IsLowered  ==  true then return end
-        --if not alreadyfiring then return end 
         if CurrentModule.CanCrawl then
             IsCrawled = not IsCrawled
             if IsCrawled == true then
