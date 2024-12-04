@@ -1,7 +1,7 @@
 --[[
 	FirearmClient.Luau
 	--------------------
-	Author(s): @SCPF_RedSky
+	Author(s): @DrBIoop
 	Date: 11-1-24
 	Runtime: Shared 
 	Information: Client side of the gun sytem
@@ -99,7 +99,7 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  ResetWeaponState
-	 @Author : @SCPF_RedSky
+	 @Author : @DrBIoop
 	 @Description : Resets all state control to default values
 	 @Params : 	 boolean: IsReset - Resets ammo
 	--------------------------------------------------------------------------------------------------
@@ -125,7 +125,7 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  Reload
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Function to reload the weapon
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
@@ -161,7 +161,7 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  Holster
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Holsters the user's current weapon
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
@@ -213,7 +213,7 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  RealFire
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Shoots the user's current gun
 	 @Params : 	      none
 	--------------------------------------------------------------------------------------------------
@@ -274,7 +274,7 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  mkHitEffects
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Handles muzzle, blood, ground effects for the gun system
 	 @Params : 	      Action: string - exists for no reason Tool: Gun - The players gun MuzzlePosition: Vector3 - The players muzzle position, HitPos: Vector3 - RaycastHit, RayReult: any - Raycast Result
 	--------------------------------------------------------------------------------------------------
@@ -337,7 +337,7 @@ end
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  Listen (https://ffrostfall.github.io/ByteNet/api/functions/definePacket/)
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Inits the remote event
 	 @Params : 	      any: data the data that got sent to the fake remote
 	--------------------------------------------------------------------------------------------------
@@ -406,7 +406,7 @@ end)]]
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  CheckAndInitWeapon
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Looks up the gun and inits it if found in the "Dictionary" Module
 	 @Params : 	      Tool: Tool - The equipped tool to init \ check
 	--------------------------------------------------------------------------------------------------
@@ -422,7 +422,7 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  Activated
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Handles when the player starts to shoot
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
@@ -458,7 +458,7 @@ end
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  InitWeapon
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Initializes the weapon
 	 @Params : 	      Tool: Tool - The equipped weapon to init
 	--------------------------------------------------------------------------------------------------
@@ -559,7 +559,7 @@ end
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   M249 Crawling
 	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
 	--------------------------------------------------------------------------------------------------
@@ -598,7 +598,7 @@ end);
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  GetPropertyChangedSignal (https://create.roblox.com/docs/reference/engine/classes/Instance#GetPropertyChangedSignal)
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   Prevents users from walking during crawl
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
@@ -623,7 +623,7 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  MouseButton1Click (https://create.roblox.com/docs/reference/engine/classes/GuiButton#MouseButton1Click)
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   (Mobile) Reload
 	 @Params : 	      boolean: gameProcessedEvent - GPE
 	--------------------------------------------------------------------------------------------------
@@ -638,7 +638,7 @@ end);
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  MouseButton1Click (https://create.roblox.com/docs/reference/engine/classes/GuiButton#MouseButton1Click)
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   (Mobile) Holster
 	 @Params : 	      boolean: gameProcessedEvent - GPE
 	--------------------------------------------------------------------------------------------------
@@ -653,7 +653,7 @@ end);
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   (PC) Reload
 	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
 	--------------------------------------------------------------------------------------------------
@@ -672,7 +672,7 @@ end);
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
-	 @Author :        @SCPF_RedSky
+	 @Author :        @DrBIoop
 	 @Description :   (PC) Holster
 	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
 	--------------------------------------------------------------------------------------------------
