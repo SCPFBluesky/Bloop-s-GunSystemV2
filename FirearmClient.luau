@@ -32,13 +32,13 @@ local ReloadRemote =FirearmShared.Remotes.Reload
 local HitEffects = FirearmShared.Stuff.Effects
 local FlashRemote = FirearmShared.Remotes.Flashlight
 
-
+local ToolAnimations = {} -- Example [M249] = Idle = etc etc
 local FirearmClient = {}
 local Player = game:GetService("Players").LocalPlayer
 local char = Player.Character or Player.CharacterAdded:Wait()
 
 local IsReloading, IsLowered, IsMobile, IsEquipped, IsButtonDown, alreadyfiring, FlashEnabled, AlreadyCloned, IsCrawled = false, false, false, false, false, false, false, false, false
-local firingTimes, CurrentAnimations, self, CurrentModule = {}, {}, nil, nil
+local firingTimes, self, CurrentModule = {}, nil, nil
 
 local IsReloading = false
 local IsLowered = false
@@ -56,6 +56,13 @@ local MobileHUD = Player.PlayerGui:WaitForChild("MobileUI").MobileButtons
 local LowerButton = MobileHUD.LowerButton
 local ReloadButton = MobileHUD.ReloadButton
 local FlashButton = MobileHUD.Flashlight
+
+local CurrentAnimations = {
+    Idle = nil,
+    Lower = nil,
+    Reload = nil,
+    Crawl = nil
+}
 
 ---------------------------
 --   R A Y C A S T   --
@@ -117,15 +124,8 @@ end;
     end;
 
     IsLowered, IsReloading, IsButtonDown, IsEquipped, IsCrawled = false, false, false, false, false
-
-    if CurrentAnimations then
-        for _, anim in pairs(CurrentAnimations) do
-            anim:Stop()
-        end;
-    end;
-
-    CurrentAnimations, self, CurrentModule = {}, nil, nil
 end;
+
 
 
 --[[
@@ -238,6 +238,8 @@ end;
     if tick() - DebouncedRate < FirearmCooldown then
         return  
     end
+    RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
+
     DebouncedRate = tick() 
     CurrentModule.Ammo -= 1
 
@@ -484,11 +486,9 @@ end
 --]]
 @native function InitWeapon(gun: Tool)
     if not Player.Character or Player.Character:WaitForChild("Humanoid").Health <= 0 then return end
-    ResetWeaponState(false)
 
     local equip, unequip
-    local LastWeapon = nil
-    og = char.Humanoid.WalkSpeed
+    -- local og
     if equip then equip:Disconnect() end
     if unequip then unequip:Disconnect() end
 
@@ -501,12 +501,11 @@ end
 
     equip = gun.Equipped:Connect(@native function()
         CleanUpConnections()
-        LastWeapon = gun
         ResetWeaponState(false)
 
         IsEquipped = true
-        local char = Player.Character or Player.CharacterAdded:Wait()
-        local hum = char:WaitForChild("Humanoid")
+        og = char.Humanoid.WalkSpeed
+        local hum = char.Humanoid
         local Animator: Animator = hum.Animator
 
         self = gun
@@ -515,20 +514,21 @@ end
         for name, anim in pairs(CurrentAnimations) do
             if anim then
                 anim:Stop()
-                anim:Destroy()
                 CurrentAnimations[name] = nil
             end
         end
 
-        for name, Id in pairs(CurrentModule.Animations) do
-            if not AnimationCache[name] then
-                local NewAnimation = Instance.new("Animation")
-                NewAnimation.AnimationId = "rbxassetid://" .. Id
-                AnimationCache[name] = Animator:LoadAnimation(NewAnimation)
+        task.spawn(@native function()
+            for name, Id in pairs(CurrentModule.Animations) do
+                if not AnimationCache[name] then
+                    local NewAnimation = Instance.new("Animation")
+                    NewAnimation.AnimationId = "rbxassetid://" .. Id
+                    AnimationCache[name] = Animator:LoadAnimation(NewAnimation)
+                end
+                CurrentAnimations[name] = AnimationCache[name]
             end
-            CurrentAnimations[name] = AnimationCache[name]
-        end
---        warn(CurrentAnimations)
+        end)
+
         if CurrentAnimations.Idle then
             CurrentAnimations.Idle:Play(0.2)
         end
@@ -537,7 +537,6 @@ end
             Player.PlayerGui.MobileUI.Enabled = true
         end
 
-        RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
         self.Activated:Connect(@native function()
             --warn("activ")
@@ -548,8 +547,9 @@ end
             IsButtonDown, alreadyfiring = false, false
         end)
 
-    unequip = gun.Unequipped:Connect(@native function()
-        CleanUpConnections()
+
+        unequip = gun.Unequipped:Connect(@native function()
+            CleanUpConnections()
         if self and CurrentModule then if CurrentModule.CanCrawl then
                 UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                 Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
@@ -557,23 +557,22 @@ end
                 Player.Character:WaitForChild("Humanoid").WalkSpeed = og
             end
         end
-        self = nil
-        IsEquipped = false
-        CurrentModule = nil
+            for _, anim in pairs(CurrentAnimations) do
+                anim:Stop()
+            end
 
-        if IsMobile then
-            Player.PlayerGui.MobileUI.Enabled = false
-        end
 
-       
-        for _, anim in pairs(CurrentAnimations) do
-            anim:Stop()
-            anim:Destroy()
-        end
- --       warn(CurrentAnimations)
-        table.clear(CurrentAnimations)
-        ResetWeaponState(false)
-         end)
+            self = nil
+            IsEquipped = false
+            CurrentModule = nil
+
+            if IsMobile then
+                Player.PlayerGui.MobileUI.Enabled = false
+            end
+
+            ResetWeaponState(false)
+
+        end)
     end)
 end
 
@@ -714,39 +713,56 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
 end);
 
 
-local function handleTool(child)
+@native function HandleAdded()
+    task.spawn(function()
+        for _, v in Player.Backpack:GetChildren() do
+            if Dic[v.Name] then
+                thesus(v)
+            end
+        end
+    end)
+
+    Player.Backpack.ChildAdded:Connect(@native function(child: Tool)
+        if child:IsA("Tool") and Dic[child.Name] then
+            InitWeapon(child)
+        end
+    end)
+
+    Player.Character.ChildAdded:Connect(@native function(child: Tool)
+        if child:IsA("Tool") and Dic[child.Name] then
+            InitWeapon(child)
+        end
+    end)
+end
+
+Player.Character.Humanoid.Died:Connect(@native function()
+    task.spawn(@native function()
+        for _, v in Player.Character:GetChildren() do
+            if v:IsA("Tool") and Dic[v.Name] then
+                thesus(v)
+            end
+        end
+    end)
+end)
+
+Player.Backpack.ChildAdded:Connect(@native function(child: Tool)
     if child:IsA("Tool") and Dic[child.Name] then
-        --warn("checking and initing")
-
-        Player.Character:WaitForChild("Humanoid").Died:Connect(function()
-            for _, v in ipairs(Player.Character:GetChildren()) do
-                if v:IsA("Tool") and Dic[v.Name] then
-                    thesus(v)
-                end
-            end
-            for _, v in ipairs(Player.Backpack:GetChildren()) do
-                if v:IsA("Tool") and Dic[v.Name] then
-                    thesus(v)
-                end
-            end
-        end)
-
-        child.Equipped:Connect(function()
-            --warn("initing")
-            CheckAndInitWeapon(child)
-        end)
+        thesus(child)
     end
-end
+end)
 
-local function added()
-    --  warn("called")
-    local char = Player.Character
-    char.ChildAdded:Connect(handleTool)
-end
+Player.CharacterAdded:Connect(@native function(character: any)
+    character:WaitForChild("Humanoid") 
+    HandleAdded()
+end)
 
 if Player.Character then
-    added() 
+    for _, v in Player.Backpack:GetChildren() do
+        if v:IsA("Tool") and Dic[v.Name] then
+            thesus(v)
+        end
+    end
+    HandleAdded()
 end
-Player.CharacterAdded:Connect(added)
 
 return FirearmClient
