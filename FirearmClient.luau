@@ -483,6 +483,7 @@ end
         ResetWeaponState(false)
 
         IsEquipped = true
+	local char = Player.Character or Player.CharacterAdded:Wait()
         og = char.Humanoid.WalkSpeed
         local hum = char.Humanoid
         local Animator: Animator = hum.Animator
