@@ -32,6 +32,11 @@ local ReloadRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.
 local TeamPriorityModule = require(game:GetService("ReplicatedStorage").FirearmShared.TeamPriorityModule)
 local Dictionary = require(game:GetService("ReplicatedStorage").FirearmShared.Dictionary)
 
+local PhysService = game:GetService("PhysicsService")
+PhysService:RegisterCollisionGroup("Accessory")
+PhysService:RegisterCollisionGroup("Bullets")
+PhysService:CollisionGroupSetCollidable("Bullets", "Accessory", false)
+
 ---------------------------
 --   S E T T I N G S   --
 ---------------------------
@@ -284,5 +289,21 @@ packet.discharge.listen(@native function(data: any, player: Player?)  -- please 
     )
 end)
 
+do
+    Players.PlayerAdded:Connect(@native function(player: Player) 
+        player.CharacterAdded:Connect(@native function(character: Model)  
+            task.wait(1)
+            for _,v in character:GetChildren() do
+                if v:IsA("Accessory") then
+                    for _,v in v:GetChildren() do
+                        if v:IsA("BasePart") then
+                            PhysService:SetPartCollisionGroup(v, "Accessory")
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+end
 
 return FirearmServer
