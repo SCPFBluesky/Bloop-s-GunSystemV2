@@ -235,16 +235,16 @@ end;
         CFrame.fromOrientation(math.rad(RNG:NextNumber(MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE)), 0, 0)
     ).LookVector
 
-
     local raycastResult = workspace:Raycast(cameraRay.Origin, spreadDirection * CONST_RANGE, RayParams)
     local aimPoint = raycastResult and raycastResult.Position or (cameraRay.Origin + spreadDirection * CONST_RANGE)
 
-    local muzzle = self:FindFirstChild("Handle") and self.Handle:FindFirstChild("Muzzle")
-    if not muzzle then return end;
+    local character = Player.Character
+    local head = character and character:FindFirstChild("Head")
+    if not head then return end;
 
-    local muzzlePos = muzzle.WorldPosition
-    local bulletDirection = (aimPoint - muzzlePos).Unit
-    local finalRaycastResult = workspace:Raycast(muzzlePos, bulletDirection * CONST_RANGE, RayParams)
+    local headPos = head.Position
+    local bulletDirection = (aimPoint - headPos).Unit
+    local finalRaycastResult = workspace:Raycast(headPos, bulletDirection * CONST_RANGE, RayParams)
 
     local finalHitPos
     if finalRaycastResult then
@@ -252,17 +252,18 @@ end;
     else
         finalHitPos = aimPoint
     end;
+
     local RayResult = {
         Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
         Normal = finalRaycastResult and finalRaycastResult.Normal or nil
     }
-    mkHitEffects("DisplayEffects", self, muzzlePos, finalHitPos, raycastResult)
+    mkHitEffects("DisplayEffects", self, headPos, finalHitPos, raycastResult)
     packet.discharge.send({
         -- if anyone could understand the pain no one will.
         -- I hope this was worth it, Seriously.
         gun = self,                             
         action = "Discharge",                    
-        muzzlePos = muzzlePos,                   
+        muzzlePos = headPos,                   
         bulletDirection = bulletDirection,        
         damage = CurrentModule.Damage,           
         finalHitPos = finalHitPos,              
