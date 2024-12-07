@@ -469,18 +469,10 @@ end
 
     local equip, unequip
     -- local og
-    if equip then equip:Disconnect() end
-    if unequip then unequip:Disconnect() end
-
-    @native local function CleanUpConnections()
-        if equip then equip:Disconnect() equip = nil end
-        if unequip then unequip:Disconnect() unequip = nil end
-    end
 
     local AnimationCache = {}
 
     equip = gun.Equipped:Connect(@native function()
-        CleanUpConnections()
         ResetWeaponState(false)
 
         IsEquipped = true
@@ -530,7 +522,6 @@ end
 
 
         unequip = gun.Unequipped:Connect(@native function()
-            CleanUpConnections()
         if self and CurrentModule then if CurrentModule.CanCrawl then
                 UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                 Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
