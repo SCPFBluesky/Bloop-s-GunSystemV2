@@ -1,3 +1,4 @@
+
 --[[
 	FirearmClient.Luau
 	--------------------
@@ -16,12 +17,11 @@
 local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-
+local og
 
 local FirearmShared = game:GetService("ReplicatedStorage"):WaitForChild("FirearmShared")
 local packet = require(game:GetService("ReplicatedStorage").packet)
 local packet2 = require(game:GetService("ReplicatedStorage").packet2)
-local Dic = require(FirearmShared.Dictionary)
 local Tagged = require(FirearmShared.Tagged)
 local ReloadRemote =FirearmShared.Remotes.Reload
 local HitEffects = FirearmShared.Stuff.Effects
@@ -219,11 +219,18 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function RealFire()
+  
     if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 then return end;
     local FirearmCooldown = CurrentModule.RPM
     if tick() - DebouncedRate < FirearmCooldown then
         return  
     end
+    
+    local GunData = self:FindFirstChild("Settings")
+    if not GunData then
+        Player:Kick("Gun settings not found in your gun. You have been kicked for security reasons.")
+    end
+
     RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
     DebouncedRate = tick() 
@@ -282,13 +289,13 @@ end;
 --]]
 @native function mkHitEffects(action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
     --warn(rayresult)
-    if action ~= "DisplayEffects" then return end;
-    local FireSound = self.Handle.Muzzle:FindFirstChild("FireSound") or self.Handle.Muzzle.Fire:Clone()
-    FireSound.Parent = self.Handle
+    local FireSound = gun.Handle.Muzzle:FindFirstChild("FireSound") or gun.Handle.Muzzle.Fire:Clone()
+    FireSound.Parent = gun.Handle
     FireSound.TimePosition = 0
     FireSound.PlaybackSpeed = 1
     FireSound:Play()
     game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
+    if action ~= "DisplayEffects" then return end;
     local muzzle = gun:FindFirstChild("Handle") and gun.Handle:FindFirstChild("Muzzle")
     if muzzle then
         if Settings.ShowMuzzleEffects == true then
@@ -413,7 +420,7 @@ end)]]
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function CheckAndInitWeapon(tool: Tool)
-    if Dic[tool.Name] then
+    if tool:FindFirstChild("Settings") and tool:FindFirstChild("Settings"):IsA("ModuleScript") then
         -- warn("passed checks")
         InitWeapon(tool)
     end;
@@ -446,9 +453,9 @@ end;
         task.spawn(RealFire)
         task.wait(CurrentModule.RPM)
         if self and CurrentModule then
-        if not CurrentModule.Automatic then
-            break
-        end
+            if not CurrentModule.Automatic then
+                break
+            end
         end
     end
     alreadyfiring = false
@@ -468,22 +475,37 @@ end
     if not Player.Character or Player.Character:WaitForChild("Humanoid").Health <= 0 then return end
 
     local equip, unequip
-    -- local og
+    if equip then equip:Disconnect() end
+    if unequip then unequip:Disconnect() end
+
+    @native local function CleanUpConnections()
+        if equip then equip:Disconnect() equip = nil end
+        if unequip then unequip:Disconnect() unequip = nil end
+    end
 
     local AnimationCache = {}
 
     equip = gun.Equipped:Connect(@native function()
+        CleanUpConnections()
         ResetWeaponState(false)
-
+        
         IsEquipped = true
-	local char = Player.Character or Player.CharacterAdded:Wait()
+        local char = Player.Character or Player.CharacterAdded:Wait()
         og = char.Humanoid.WalkSpeed
         local hum = char.Humanoid
         local Animator: Animator = hum.Animator
 
         self = gun
-        CurrentModule = Dic[tostring(gun)]
-
+     
+        CurrentModule = require(gun:FindFirstChild("Settings"))
+        assert(CurrentModule, "Gun does NOT have Current Module!")
+        
+        self.ChildRemoved:Connect(@native function(Added: any)
+            if Added.Name == "Settings" and Added:IsA("ModuleScript") then
+                Player:Kick("Settings module Altered. You have been kicked for security reasons.")
+            end
+        end)
+        
         for name, anim in pairs(CurrentAnimations) do
             if anim then
                 anim:Stop()
@@ -522,13 +544,14 @@ end
 
 
         unequip = gun.Unequipped:Connect(@native function()
-        if self and CurrentModule then if CurrentModule.CanCrawl then
-                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-                Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
-                Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
-                Player.Character:WaitForChild("Humanoid").WalkSpeed = og
+            CleanUpConnections()
+            if self and CurrentModule then if CurrentModule.CanCrawl then
+                    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+                    Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
+                    Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
+                    Player.Character:WaitForChild("Humanoid").WalkSpeed = og
+                end
             end
-        end
             for _, anim in pairs(CurrentAnimations) do
                 anim:Stop()
             end
@@ -605,14 +628,6 @@ Player.Character:WaitForChild("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):
 end);
 
 
-@native function thesus(item: Tool)
-    if Dic[item.Name] then
-        local CurrentModule = Dic[item.Name]
-        CurrentModule.Ammo = CurrentModule.MaxAmmo
-        ResetWeaponState(true)
-    end;
-end;
-
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  MouseButton1Click (https://create.roblox.com/docs/reference/engine/classes/GuiButton#MouseButton1Click)
@@ -680,56 +695,20 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
 end);
 
 
-@native function HandleAdded()
-    task.spawn(function()
-        for _, v in Player.Backpack:GetChildren() do
-            if Dic[v.Name] then
-                thesus(v)
-            end
-        end
-    end)
-
-    Player.Backpack.ChildAdded:Connect(@native function(child: Tool)
-        if child:IsA("Tool") and Dic[child.Name] then
-            InitWeapon(child)
-        end
-    end)
-
-    Player.Character.ChildAdded:Connect(@native function(child: Tool)
-        if child:IsA("Tool") and Dic[child.Name] then
-            InitWeapon(child)
-        end
-    end)
-end
-
-Player.Character.Humanoid.Died:Connect(@native function()
-    task.spawn(@native function()
-        for _, v in Player.Character:GetChildren() do
-            if v:IsA("Tool") and Dic[v.Name] then
-                thesus(v)
-            end
-        end
-    end)
-end)
-
-Player.Backpack.ChildAdded:Connect(@native function(child: Tool)
-    if child:IsA("Tool") and Dic[child.Name] then
-        thesus(child)
-    end
-end)
-
-Player.CharacterAdded:Connect(@native function(character: any)
-    character:WaitForChild("Humanoid") 
-    HandleAdded()
-end)
-
 if Player.Character then
-    for _, v in Player.Backpack:GetChildren() do
-        if v:IsA("Tool") and Dic[v.Name] then
-            thesus(v)
+    Player.Character.ChildAdded:Connect(@native function(child: Instance) 
+        if child:IsA("Tool") and child:FindFirstChild("Settings") and child:FindFirstChild("Handle"):FindFirstChild("Muzzle") then
+            InitWeapon(child)
         end
-    end
-    HandleAdded()
+    end)
 end
+
+Player.CharacterAdded:Connect(@native function(character: Model) 
+    Player.Character.ChildAdded:Connect(@native function(child: Instance) 
+        if child:IsA("Tool") and child:FindFirstChild("Settings") and child:FindFirstChild("Handle"):FindFirstChild("Muzzle") then
+            InitWeapon(child)
+        end
+    end)
+end)
 
 return FirearmClient
