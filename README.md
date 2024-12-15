@@ -12,18 +12,18 @@
 
 ```lua
 local Settings = {
-	ShowBlood = true, -- Show blood?
-	ShowMuzzleEffects = true, -- Show muzzle?
+	ShowBlood = true; -- Show blood?
+	ShowMuzzleEffects = true; -- Show muzzle?
 }
 ```
 # There are also 4 MORE Options inside FirearmServer (Server)
 
 ```lua
 local Settings = {
-	AlwaysDamage = false, -- Enabling this disables ALL team kill restrictions
-	NotifyPlayer = true, -- Enable notifcations
-	EnableGuiltySystem = true, -- Enable CD Guilty system
-	
+	AlwaysDamage = false; -- Enabling this disables ALL team kill restrictions
+	NotifyPlayer = true; -- Enable notifcations
+	EnableGuiltySystem = true; -- Enable CD Guilty system
+	EnableS19ReloadSounds = true -- Enables S19 Reload (Magin \ Magout Sounds) + Mag Transparency else, Will revert to the normal single reload sound if there is one
 }
 ```
 
