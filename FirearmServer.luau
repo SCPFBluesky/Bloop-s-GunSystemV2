@@ -21,6 +21,7 @@ local IsCloned, IsEnabled = false,false
 
 local packet = require(game:GetService("ReplicatedStorage").packet)
 local packet2 = require(game:GetService('ReplicatedStorage').packet2)
+local CreateSound = require(game:GetService("ReplicatedStorage").CreateSound)
 local ClientRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Client
 
 local HitEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Effects
@@ -30,7 +31,6 @@ local FlashlightRemote = game:GetService("ReplicatedStorage").FirearmShared.Remo
 local Notify = game:GetService("ReplicatedStorage").NotifyPlayer
 local ReloadRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Reload
 local TeamPriorityModule = require(game:GetService("ReplicatedStorage").FirearmShared.TeamPriorityModule)
-local Dictionary = require(game:GetService("ReplicatedStorage").FirearmShared.Dictionary)
 
 local PhysService = game:GetService("PhysicsService")
 PhysService:RegisterCollisionGroup("Accessory")
@@ -45,6 +45,7 @@ local Settings = {
     AlwaysDamage = false,
     NotifyPlayer = true,
     EnableGuiltySystem = true,
+    EnableS19ReloadSounds = true
 
 }
 
@@ -181,9 +182,68 @@ end;
 	 @Params : 	      any: self - the players gun
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function Reload(plr: any, gun: any)
-    local sound = gun.Handle.Muzzle.Reload
-    sound:Play()
+@native function Reload(plr: Player, gun: any)
+    local Char = plr.Character or nil
+    
+    if not Char then
+        return
+    end
+    
+    if Settings.EnableS19ReloadSounds then
+    do
+        if not gun.Handle:FindFirstChild("magIn") then
+            
+        local MagInSound = CreateSound.new("magIn", 330005593, 1, gun.Handle.Muzzle)
+        local magOut = CreateSound.new("magOut", 295387403, 1, gun.Handle.Muzzle)
+        end
+    end
+ 
+    local Settings = require(gun.Settings)
+    local MagPart = nil
+    
+    if gun and gun.Handle then
+       -- MagPart = gun:FindFirstChild("Mag") or gun.Handle:FindFirstChild("Mag")
+       
+       for _,v in gun:GetDescendants() do
+            if v.Name == "Mag" and v:IsA("BasePart") then
+                MagPart = v
+                break
+            end
+       end
+       
+    end
+    
+   -- warn(typeof(MagPart))
+   -- warn(MagPart)
+    
+    if not MagPart or not MagPart:IsA("BasePart") then
+        return
+    end
+    
+    if not gun:IsDescendantOf(Char) then
+        return
+    end
+        
+    local MagInTime = Settings.MaginTime or 1
+    local MagIn = gun.Handle.Muzzle.magIn
+    local magOut = gun.Handle.Muzzle.magOut
+    
+    MagPart.Transparency = 1
+    magOut:Play()
+    
+    task.delay(MagInTime, @native function()
+        if not gun:IsDescendantOf(Char) then
+            return
+        end
+        
+        MagIn:Play()
+        MagPart.Transparency = 0
+    end)
+    
+    else
+       
+        gun.Handle:FindFirstChild("Reload"):Play()
+    end
 end;
 
 --[[
@@ -195,11 +255,6 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function Fire(player: any, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: any)
-    for _,v in gun:GetDescendants() do
-        if v:IsA("BasePart") then
-            v:SetNetworkOwner(player)
-        end
-    end
     local self = gun
     if self == nil or self:IsDescendantOf(workspace) == false or player.Character.Humanoid.Health == 0 then return end
     if arg == "Discharge" then
@@ -214,32 +269,32 @@ end;
         if finalHitPosition == nil or typeof(finalHitPosition) ~= "Vector3" then
             return
         end;
-     
+
         if raycastResult and finalHitPosition and raycastResult.Normal then
-            
-           do
-            local hitInstance = raycastResult.Instance or nil
-            if hitInstance == nil then
-                return
-            end
-            local hitHumanoid = hitInstance and hitInstance.Parent:FindFirstChild("Humanoid")
 
-            local hitModel = hitInstance:FindFirstAncestor("173")
-            if hitModel and hitModel:IsA("Model") then
-                local healthValue = hitModel:FindFirstChild("Health")
-                if healthValue and healthValue:IsA("NumberValue") then
-                    healthValue.Value = healthValue.Value - dmg 
-                end;
-            end;
+            do
+                local hitInstance = raycastResult.Instance or nil
+                if hitInstance == nil then
+                    return
+                end
+                local hitHumanoid = hitInstance and hitInstance.Parent:FindFirstChild("Humanoid")
 
-            if hitHumanoid then
-                local targetPlayer = Players:GetPlayerFromCharacter(hitHumanoid.Parent)
-
-                if targetPlayer == nil or TeamCheck(player, targetPlayer, self) then
-                    hitHumanoid:TakeDamage(dmg)
+                local hitModel = hitInstance:FindFirstAncestor("173")
+                if hitModel and hitModel:IsA("Model") then
+                    local healthValue = hitModel:FindFirstChild("Health")
+                    if healthValue and healthValue:IsA("NumberValue") then
+                        healthValue.Value = healthValue.Value - dmg 
                     end;
                 end;
-              end;
+
+                if hitHumanoid then
+                    local targetPlayer = Players:GetPlayerFromCharacter(hitHumanoid.Parent)
+
+                    if targetPlayer == nil or TeamCheck(player, targetPlayer, self) then
+                        hitHumanoid:TakeDamage(dmg)
+                    end;
+                end;
+            end;
         end;
 
         --print((os.clock()-s)*1e+6, "μs")
