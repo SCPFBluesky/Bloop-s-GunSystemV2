@@ -31,7 +31,7 @@ local Settings = {
 ![image](https://github.com/user-attachments/assets/9fff060b-f70c-4142-ae45-18b5eab518e0)
 
 
-# Inside Replicated Storage You will find TWO Important modules called "TeamPriorityModule" and "Dictionary"
+# Inside Replicated Storage you will find a module called "TeamPriorityModule"
 
 ```lua
 return {
