@@ -1,4 +1,3 @@
-
 --[[
 	FirearmClient.Luau
 	--------------------
@@ -21,7 +20,9 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local og
 
-local FirearmShared = game:GetService("ReplicatedStorage"):WaitForChild("FirearmShared")
+local FirearmShared = game:GetService("ReplicatedStorage").FirearmShared
+local MuzzleEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle:GetChildren()
+
 local packet = require(game:GetService("ReplicatedStorage").packet)
 local packet2 = require(game:GetService("ReplicatedStorage").packet2)
 local Tagged = require(FirearmShared.Tagged)
@@ -35,12 +36,11 @@ local Player = game:GetService("Players").LocalPlayer
 local char = Player.Character or Player.CharacterAdded:Wait()
 
 local IsReloading, IsLowered, IsMobile, IsEquipped, IsButtonDown, alreadyfiring, FlashEnabled, AlreadyCloned, IsCrawled = false, false, false, false, false, false, false, false, false
-local firingTimes, self, CurrentModule = {}, nil, nil
+local self, CurrentModule = nil, nil
 
 local IsReloading = false
 local IsLowered = false
 
-local firingTimes = {}
 local DebouncedRate = 0 
 local RNG = Random.new()
 local TAU = math.pi * 2
@@ -90,10 +90,10 @@ local Settings = {
 --  M A I N S C R I P T  --
 ---------------------------
 
-
 if UserInputService.TouchEnabled then
     IsMobile = true
 end;
+
 
 --[[
 	--------------------------------------------------------------------------------------------------
@@ -119,8 +119,8 @@ end;
 --]]
 @native function Reload()
     if not IsEquipped or not self or not Player.Character or not Player.Character:FindFirstChild("Humanoid") or Player.Character.Humanoid.Health <= 0 or IsReloading then
-        return
-    end
+        return;
+    end;
 
     if IsLowered or CurrentModule.Ammo == CurrentModule.MaxAmmo then return end;
     
@@ -131,8 +131,7 @@ end;
         IsReloading = true
     end
 
-    task.defer(@native function()
-        CurrentAnimations.Reload.Ended:Wait()
+    task.delay(CurrentAnimations.Reload.Length, @native function()
         if IsEquipped then
             if CurrentModule then
                 CurrentModule.Ammo = CurrentModule.MaxAmmo
@@ -181,7 +180,7 @@ end;
         table.insert(ignore, 1, object)
     end;
 
-    return ignore
+    return ignore;
 end;
 
 
@@ -204,14 +203,16 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function RealFire()
-  
-    if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 then return end;
-    local FirearmCooldown = CurrentModule.RPM
-    
-    if tick() - DebouncedRate < FirearmCooldown then
-        return  
+    if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 or not char:FindFirstChild("Head") then
+        return;
     end;
-    
+
+    local FirearmCooldown = CurrentModule.RPM
+
+    if os.clock() - DebouncedRate < FirearmCooldown then
+        return;
+    end;
+
     local GunData = self:FindFirstChild("Settings")
     
     if not GunData then
@@ -220,53 +221,44 @@ end;
 
     RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
-    DebouncedRate = tick() 
+    DebouncedRate = os.clock()
     CurrentModule.Ammo -= 1
 
     local cameraRay = workspace.CurrentCamera:ScreenPointToRay(Mouse.X, Mouse.Y)
-    local spreadDirection = (CFrame.new(Vector3.new(), cameraRay.Direction) *
+    local spreadCF = CFrame.new(Vector3.new(), cameraRay.Direction) *
         CFrame.fromOrientation(0, 0, RNG:NextNumber(0, TAU)) *
         CFrame.fromOrientation(math.rad(RNG:NextNumber(MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE)), 0, 0)
-    ).LookVector
+    local spreadDirection = spreadCF.LookVector
 
     local raycastResult = workspace:Raycast(cameraRay.Origin, spreadDirection * CONST_RANGE, RayParams)
     local aimPoint = raycastResult and raycastResult.Position or (cameraRay.Origin + spreadDirection * CONST_RANGE)
 
-    local character = Player.Character
-    local head = character and character:FindFirstChild("Head")
-    if not head then return end;
-
+    local head = Player.Character and Player.Character:FindFirstChild("Head")
     local headPos = head.Position
     local bulletDirection = (aimPoint - headPos).Unit
-    local finalRaycastResult = workspace:Raycast(headPos, bulletDirection * CONST_RANGE, RayParams)
 
-    local finalHitPos
-    
-    if finalRaycastResult then
-        finalHitPos = finalRaycastResult.Position
-    else
-        finalHitPos = aimPoint
-    end;
+    local finalRaycastResult = workspace:Raycast(headPos, bulletDirection * CONST_RANGE, RayParams)
+    local finalHitPos = finalRaycastResult and finalRaycastResult.Position or aimPoint
 
     local RayResult = {
         Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
         Normal = finalRaycastResult and finalRaycastResult.Normal or nil
-    };
-    
+    }
+
     mkHitEffects("DisplayEffects", self, headPos, finalHitPos, raycastResult)
-    
+
     packet.discharge.send({
-        -- if anyone could understand the pain no one will.
-        -- I hope this was worth it, Seriously.
-        gun = self,                             
-        action = "Discharge",                    
-        muzzlePos = headPos,                   
-        bulletDirection = bulletDirection,        
-        damage = CurrentModule.Damage,           
-        finalHitPos = finalHitPos,              
-        hitInfo = RayResult or nil                        
-    })
+        gun = self,
+        action = "Discharge",
+        muzzlePos = headPos,
+        bulletDirection = bulletDirection,
+        damage = CurrentModule.Damage,
+        finalHitPos = finalHitPos,
+        hitInfo = RayResult
+    });
+    
 end;
+
 
 
 --[[
@@ -285,45 +277,49 @@ end;
     FireSound:Play()
     
     game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
-    if action ~= "DisplayEffects" then return end;
+    
+    if action ~= "DisplayEffects" then return; end;
     
     local muzzle = gun:FindFirstChild("Handle") and gun.Handle:FindFirstChild("Muzzle")
+    
     if muzzle then
-        
-        if Settings.ShowMuzzleEffects == true then
-            for _, effect in pairs(game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle:GetChildren()) do
-                local clonedEffect = effect:Clone()
-                clonedEffect.Parent = muzzle
-                if clonedEffect:IsA("ParticleEmitter") then clonedEffect:Emit(15) end
-                game:GetService("Debris"):AddItem(clonedEffect, clonedEffect.Name == "Light" and 0.1 or 3)
+        do
+            if Settings.ShowMuzzleEffects then
+                for _, effect in MuzzleEffects do
+
+                    local Clone = effect:Clone()
+                    Clone.Parent = muzzle
+
+                    if Clone:IsA("ParticleEmitter") then
+                        Clone:Emit(15)
+                    end;
+
+                    local lifetime = (Clone.Name == "Light") and 0.1 or 3
+                    game:GetService("Debris"):AddItem(Clone, lifetime)
+                end;
             end;
         end;
-end;
-
-
-    if not rayresult or not rayresult.Instance or not rayresult.Normal then
-        return; 
     end;
     
-    if hitPos == nil then
-        return
-    end
-
-    if typeof(rayresult.Instance) ~= "Instance" or typeof(rayresult.Normal) ~= "Vector3" then
-        -- warn("this really got me thinking if this is worth it or not")
+    if not rayresult or not rayresult.Instance or not rayresult.Normal or not hitPos or 
+        typeof(rayresult.Instance) ~= "Instance" or typeof(rayresult.Normal) ~= "Vector3" or 
+        typeof(hitPos) ~= "Vector3" then
         return;
     end;
 
-    if hitPos == nil or typeof(hitPos) ~= "Vector3" then
-        --warn("KJFWEFWEFEWKLWEFQ LINE 350")
-        return;
-    end;
+
 
     local attach = HitEffects.Effects:Clone()
     attach.Parent = workspace.Terrain
     attach.CFrame = CFrame.new(hitPos, hitPos + rayresult.Normal)
-
-    local hithuam = rayresult.Instance and rayresult.Instance.Parent:FindFirstChild("Humanoid")
+    
+    local hithuam 
+    local RayInstance = rayresult.Instance or nil
+    
+    if RayInstance and RayInstance.Parent and RayInstance.Parent:FindFirstChildWhichIsA("Humanoid") then
+        hithuam = RayInstance.Parent.Humanoid
+    end 
+    
     if hithuam then
         if Settings.ShowBlood == true then
             attach.Blood:Emit(20)
@@ -335,90 +331,9 @@ end;
     end;
 end;
 
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  Listen (https://ffrostfall.github.io/ByteNet/api/functions/definePacket/)
-	 @Author :        @DrBIoop
-	 @Description :   Inits the remote event
-	 @Params : 	      any: data the data that got sent to the fake remote
-	--------------------------------------------------------------------------------------------------
---]]
-packet2.MKHitEffects.listen(@native function(data: any)
-    local action = data.action
-    local gun = data.gun
-    local muzzlePos = data.muzzlePos
-    local hitPos = data.hitPos
-    local rayresult = data.rayresult
-
-    mkHitEffects(action, gun, muzzlePos, hitPos, rayresult)
-end)
-
-
---[[function StartFiring()
-	if not IsEquipped or alreadyfiring or not canfire() then return end
-
-	alreadyfiring = true
-	IsButtonDown = true
-
-	if CurrentModule.Automatic then
-		local function AutoFire()
-			while IsButtonDown and IsEquipped and CurrentModule.Ammo > 0 do
-				RealFire(self)
-				CurrentModule.Ammo = CurrentModule.Ammo - 1
-				waitthing(CurrentModule.RPM) 
-			end
-			alreadyfiring = false
-		end
-
-		AutoFire()
-	else
-		RealFire(self)
-	end
-end]]
-
-
-
-
-
-
-
---[[Player.CharacterAdded:Connect(function()
-	ResetWeaponState()
-end)]]
-
---[[char:WaitForChild("Humanoid").Died:Connect(@native function()
-	ResetWeaponState()
-end)]]
-
-
-
---BindToTag("Firearm", InitWeapon)
---[[BindToTag("Firearm", function(gun: any)
-	if gun:IsDescendantOf(Player.Character) then 
-		InitWeapon(gun)
-	end
-end)]]
-
-
 ---------------------------
 --  C O N N E C T I O N S  --
 ---------------------------
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name : 	 	  CheckAndInitWeapon
-	 @Author :        @DrBIoop
-	 @Description :   Looks up the gun and inits it if found in the "Dictionary" Module
-	 @Params : 	      Tool: Tool - The equipped tool to init \ check
-	--------------------------------------------------------------------------------------------------
---]]
-@native function CheckAndInitWeapon(tool: Tool)
-    if tool:FindFirstChild("Settings") and tool:FindFirstChild("Settings"):IsA("ModuleScript") then
-        -- warn("passed checks")
-        InitWeapon(tool)
-    end;
-end;
-
 
 --[[
 	--------------------------------------------------------------------------------------------------
@@ -434,12 +349,11 @@ end;
     
     while CurrentModule and self and Player.Character and Player.Character.Humanoid.Health > 0 and CurrentModule.Ammo > 0 and not IsReloading and not IsLowered and IsButtonDown do
         if not self or not CurrentModule then
-            -- warn("Ran return")
             return;
         end;
 
         if not IsButtonDown then
-            break
+            break;
         end;
 
         --warn("Shooting")
@@ -449,7 +363,7 @@ end;
         
         if self and CurrentModule then
             if not CurrentModule.Automatic then
-                break
+                break;
             end;
         end;
     end;
@@ -468,7 +382,7 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function InitWeapon(gun: Tool)
-    if not Player.Character or Player.Character:WaitForChild("Humanoid").Health <= 0 then return end
+    if not Player.Character or Player.Character.Humanoid.Health <= 0 then return; end;
 
     local equip, unequip
     
@@ -527,22 +441,21 @@ end;
 
 
         self.Activated:Connect(@native function()
-            --warn("activ")
             Activated()
         end);
         
         self.Deactivated:Connect(@native function()
-            -- warn("deactive")
             IsButtonDown, alreadyfiring = false, false
         end);
 
 
         unequip = gun.Unequipped:Connect(@native function()
+            
             if self and CurrentModule then if CurrentModule.CanCrawl then
                     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                     Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
                     Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
-                    Player.Character:WaitForChild("Humanoid").WalkSpeed = og
+                    Player.Character.Humanoid.WalkSpeed = og
                 end;
             end;
             
@@ -590,7 +503,7 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
                 Player.CameraMinZoomDistance = 7
                 UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
                 
-                Player.Character:WaitForChild("Humanoid").WalkSpeed = 0
+                Player.Character.Humanoid.WalkSpeed = 0
                 CurrentAnimations.Idle:Stop(0.2)
                 CurrentAnimations.Crawl:Play(0.2)
             else
@@ -599,7 +512,7 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
                 
                 Player.CameraMode = Enum.CameraMode.Classic
                 UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-                Player.Character:WaitForChild("Humanoid").WalkSpeed = og
+                Player.Character.Humanoid.WalkSpeed = og
                 CurrentAnimations.Crawl:Stop(0.2)
                 CurrentAnimations.Idle:Play(0.2)
             end;
@@ -616,9 +529,9 @@ end);
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
 --]]
-Player.Character:WaitForChild("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):Connect(@native function()
+Player.Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(@native function()
     if IsCrawled then
-        Player.Character:WaitForChild("Humanoid").WalkSpeed = 0
+        Player.Character.Humanoid.WalkSpeed = 0
     else
         return;
     end;
@@ -670,6 +583,24 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
         if not IsEquipped then return; end;
         Reload()
     end;
+end);
+
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  Listen (https://ffrostfall.github.io/ByteNet/api/functions/definePacket/)
+	 @Author :        @DrBIoop
+	 @Description :   Inits the remote event
+	 @Params : 	      any: data the data that got sent to the fake remote
+	--------------------------------------------------------------------------------------------------
+--]]
+packet2.MKHitEffects.listen(@native function(data: any)
+    local action = data.action
+    local gun = data.gun
+    local muzzlePos = data.muzzlePos
+    local hitPos = data.hitPos
+    local rayresult = data.rayresult
+
+    mkHitEffects(action, gun, muzzlePos, hitPos, rayresult)
 end);
 
 --[[
