@@ -117,40 +117,41 @@ end;
         if TargetPirority == 1 then
             if Settings.NotifyPlayer then
                 Notify:FireClient(PlayerWhoFired, "You cannot damage people on your own team.")
-            end
-            return false
+            end;
+            return false;
+            
         elseif TargetPirority == 2 or TargetPirority == 3 then
            -- print("YES I AM R")
-            return true
-        end
-    end
+            return true;
+        end;
+    end;
 
     if PlrPriority == 2 then
         if TargetTeam == "Chaos Insurgency" then
-            return true
+            return true;
         elseif TargetTeam == "Class D" then
             if Settings.EnableGuiltySystem then
                 if targetPlr.Character:GetAttribute("Guilty") then
                    -- warn("impending doom")
-                    return true
+                    return true;
                 elseif Settings.NotifyPlayer then
                     Notify:FireClient(PlayerWhoFired, "You cannot damage Class Ds who did nothing wrong.")
-                end
-                return false
-            end
-            return true
+                end;
+                return false;
+            end;
+            return true;
         elseif TargetPirority == 2 or TargetPirority == 3 then
             if Settings.NotifyPlayer then
                 Notify:FireClient(PlayerWhoFired, "You cannot damage people who also work for the Foundation.")
-            end
-            return false
-        end
-    end
+            end;
+            return false;
+        end;
+    end;
 
     if PlrPriority == 3 then
-        return true
-    end
-end
+        return true;
+    end;
+end;
 
 
 
@@ -167,18 +168,19 @@ end
     local Char = plr.Character or nil
     
     if not Char then
-        return
-    end
+        return;
+    end;
     
     if Settings.EnableS19ReloadSounds then
         
     do
         if not gun.Handle:FindFirstChild("magIn") then
             
-        local MagInSound = CreateSound.new("magIn", 330005593, 1, gun.Handle.Muzzle)
-        local magOut = CreateSound.new("magOut", 295387403, 1, gun.Handle.Muzzle)
-        end
-    end
+        local MagInSound = CreateSound.new(330005593, "magIn", 1, gun.Handle.Muzzle)
+        local magOut = CreateSound.new(295387403, "magOut", 1, gun.Handle.Muzzle)
+        
+        end;
+    end;
  
     local Settings = require(gun.Settings)
     local MagPart = nil
@@ -189,23 +191,19 @@ end
        for _,v in gun:GetDescendants() do
             if v.Name == "Mag" and v:IsA("BasePart") then
                 MagPart = v
-                break
-            end
-       end
-       
-    end
+                break;
+            end;
+       end;
+    end;
     
    -- warn(typeof(MagPart))
    -- warn(MagPart)
-    
-    if not MagPart or not MagPart:IsA("BasePart") then
-        return
-    end
-    
-    if not gun:IsDescendantOf(Char) then
-        return
-    end
-        
+
+     if not MagPart or not MagPart:IsA("BasePart") or not gun:IsDescendantOf(Char) then
+        return;
+     end;
+
+
     local MagInTime = Settings.MaginTime or 1
     local MagIn = gun.Handle.Muzzle.magIn
     local magOut = gun.Handle.Muzzle.magOut
@@ -215,20 +213,20 @@ end
     
     task.delay(MagInTime, @native function()
         if not gun:IsDescendantOf(Char) then
-            return
-        end
+            return;
+        end;
         
         MagIn:Play()
         MagPart.Transparency = 0
-    end)
+    end);
     
     else
         local ReloadSound = gun.Handle:FindFirstChild("Reload") or gun:FindFirstChild("Reload") or gun.Handle.Muzzle:FindFirstChild("Reload")
         
         if ReloadSound and ReloadSound:IsA("Sound") then
             ReloadSound:Play()
-        end
-    end
+        end;
+    end;
 end;
 
 --[[
@@ -242,30 +240,29 @@ end;
 @native function Fire(player: any, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: any)
     local self = gun
     
-    if self == nil or self:IsDescendantOf(workspace) == false or player.Character.Humanoid.Health == 0 then return end
+    if self == nil or not self:IsDescendantOf(workspace) or player.Character.Humanoid.Health == 0 then return; end;
+    
     if arg == "Discharge" then
         --	local s = os.clock()
 
+        local hitInstance = raycastResult.Instance or nil
 
-        if typeof(raycastResult.Instance) ~= "Instance" or typeof(raycastResult.Normal) ~= "Vector3" then
-            -- legit will not work without this since when its nil it likes to turn into a random number for somereason so yeah
-            return
+        if typeof(raycastResult.Instance) ~= "Instance" or typeof(raycastResult.Normal) ~= "Vector3" or finalHitPosition == nil or typeof(finalHitPosition) ~= "Vector3" or not hitInstance then
+            return;
         end;
 
-        if finalHitPosition == nil or typeof(finalHitPosition) ~= "Vector3" then
-            return
-        end;
 
         if raycastResult and finalHitPosition and raycastResult.Normal then
 
             do
-                local hitInstance = raycastResult.Instance or nil
-                if hitInstance == nil then
-                    return
-                end
-                local hitHumanoid = hitInstance and hitInstance.Parent:FindFirstChild("Humanoid")
+                local hitHumanoid
 
+                if hitInstance and hitInstance.Parent and hitInstance.Parent:FindFirstChildWhichIsA("Humanoid") then
+                    hitHumanoid = hitInstance.Parent.Humanoid
+                end;
+                
                 local hitModel = hitInstance:FindFirstAncestor("173")
+                
                 if hitModel and hitModel:IsA("Model") then
                     local healthValue = hitModel:FindFirstChild("Health")
                     if healthValue and healthValue:IsA("NumberValue") then
