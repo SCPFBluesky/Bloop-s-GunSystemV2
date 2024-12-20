@@ -10,10 +10,12 @@
 
 --!native
 --!nonstrict
+--!divine-intellect
 
 ---------------------------
 --   V A R I A B L E S   --
 ---------------------------
+
 local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -23,7 +25,8 @@ local FirearmShared = game:GetService("ReplicatedStorage"):WaitForChild("Firearm
 local packet = require(game:GetService("ReplicatedStorage").packet)
 local packet2 = require(game:GetService("ReplicatedStorage").packet2)
 local Tagged = require(FirearmShared.Tagged)
-local ReloadRemote =FirearmShared.Remotes.Reload
+
+local ReloadRemote = FirearmShared.Remotes.Reload
 local HitEffects = FirearmShared.Stuff.Effects
 local FlashRemote = FirearmShared.Remotes.Flashlight
 
@@ -88,11 +91,7 @@ local Settings = {
 ---------------------------
 
 
-
-
-
-
-if UserInputService.TouchEnabled == true then
+if UserInputService.TouchEnabled then
     IsMobile = true
 end;
 
@@ -101,22 +100,10 @@ end;
 	 @Name : 	 	  ResetWeaponState
 	 @Author : @DrBIoop
 	 @Description : Resets all state control to default values
-	 @Params : 	 boolean: IsReset - Resets ammo
+	 @Params : 	 None
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function ResetWeaponState(isReset: boolean)
-    if isReset then
-        --warn("is true")
-        if CurrentModule then
-            --warn("found module")
-            --warn(CurrentModule)
-            --warn(CurrentModule.Ammo)
-            --warn(CurrentModule.MaxAmmo)
-            CurrentModule.Ammo = CurrentModule.MaxAmmo
-            --warn("after:" ..CurrentModule.Ammo)
-        end;
-    end;
-
+@native function ResetWeaponState()
     IsLowered, IsReloading, IsButtonDown, IsEquipped, IsCrawled = false, false, false, false, false
 end;
 
@@ -135,7 +122,8 @@ end;
         return
     end
 
-    if IsLowered or CurrentModule.Ammo == CurrentModule.MaxAmmo then return end
+    if IsLowered or CurrentModule.Ammo == CurrentModule.MaxAmmo then return end;
+    
     do
         CurrentModule.Ammo = 0
         ReloadRemote:FireServer(self)
@@ -143,7 +131,7 @@ end;
         IsReloading = true
     end
 
-    task.spawn(@native function()
+    task.defer(@native function()
         CurrentAnimations.Reload.Ended:Wait()
         if IsEquipped then
             if CurrentModule then
@@ -171,11 +159,11 @@ end;
         return
     end;
 
-    if CurrentModule.CanLower == false then return end;
+    if not CurrentModule.CanLower then return end;
 
     IsLowered = not IsLowered
 
-    if IsLowered == true then
+    if IsLowered then
         CurrentAnimations.Idle:Stop()
         CurrentAnimations.Lower:Play(0.2)
     else
@@ -186,8 +174,7 @@ end;
 
 
 
-
-local function getIgnorelist(items: any)
+@native function getIgnorelist(items: any)
     local ignore = Tagged("RayIgnore")
 
     for _, object in items do
@@ -196,8 +183,6 @@ local function getIgnorelist(items: any)
 
     return ignore
 end;
-
-
 
 
 
@@ -222,14 +207,16 @@ end;
   
     if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 then return end;
     local FirearmCooldown = CurrentModule.RPM
+    
     if tick() - DebouncedRate < FirearmCooldown then
         return  
-    end
+    end;
     
     local GunData = self:FindFirstChild("Settings")
+    
     if not GunData then
         Player:Kick("Gun settings not found in your gun. You have been kicked for security reasons.")
-    end
+    end;
 
     RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
@@ -254,6 +241,7 @@ end;
     local finalRaycastResult = workspace:Raycast(headPos, bulletDirection * CONST_RANGE, RayParams)
 
     local finalHitPos
+    
     if finalRaycastResult then
         finalHitPos = finalRaycastResult.Position
     else
@@ -263,8 +251,10 @@ end;
     local RayResult = {
         Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
         Normal = finalRaycastResult and finalRaycastResult.Normal or nil
-    }
+    };
+    
     mkHitEffects("DisplayEffects", self, headPos, finalHitPos, raycastResult)
+    
     packet.discharge.send({
         -- if anyone could understand the pain no one will.
         -- I hope this was worth it, Seriously.
@@ -288,43 +278,46 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function mkHitEffects(action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
-    --warn(rayresult)
     local FireSound = gun.Handle.Muzzle:FindFirstChild("FireSound") or gun.Handle.Muzzle.Fire:Clone()
     FireSound.Parent = gun.Handle
     FireSound.TimePosition = 0
     FireSound.PlaybackSpeed = 1
     FireSound:Play()
+    
     game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
     if action ~= "DisplayEffects" then return end;
+    
     local muzzle = gun:FindFirstChild("Handle") and gun.Handle:FindFirstChild("Muzzle")
     if muzzle then
+        
         if Settings.ShowMuzzleEffects == true then
             for _, effect in pairs(game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle:GetChildren()) do
                 local clonedEffect = effect:Clone()
                 clonedEffect.Parent = muzzle
                 if clonedEffect:IsA("ParticleEmitter") then clonedEffect:Emit(15) end
                 game:GetService("Debris"):AddItem(clonedEffect, clonedEffect.Name == "Light" and 0.1 or 3)
-            end
-        end
-    end
+            end;
+        end;
+end;
 
 
     if not rayresult or not rayresult.Instance or not rayresult.Normal then
-        return  
-    end
+        return; 
+    end;
+    
     if hitPos == nil then
         return
     end
 
     if typeof(rayresult.Instance) ~= "Instance" or typeof(rayresult.Normal) ~= "Vector3" then
         -- warn("this really got me thinking if this is worth it or not")
-        return
-    end
+        return;
+    end;
 
     if hitPos == nil or typeof(hitPos) ~= "Vector3" then
         --warn("KJFWEFWEFEWKLWEFQ LINE 350")
-        return
-    end
+        return;
+    end;
 
     local attach = HitEffects.Effects:Clone()
     attach.Parent = workspace.Terrain
@@ -334,13 +327,13 @@ end;
     if hithuam then
         if Settings.ShowBlood == true then
             attach.Blood:Emit(20)
-        end
+        end;
     else
         attach.Flash:Emit(20)
         attach.Smoke:Emit(20)
         game:GetService("Debris"):AddItem(attach, attach.Smoke.Lifetime.Max + 0.1)
-    end
-end
+    end;
+end;
 
 --[[
 	--------------------------------------------------------------------------------------------------
@@ -438,29 +431,32 @@ end;
 @native function Activated()
     -- warn("function")
     IsButtonDown = true
+    
     while CurrentModule and self and Player.Character and Player.Character.Humanoid.Health > 0 and CurrentModule.Ammo > 0 and not IsReloading and not IsLowered and IsButtonDown do
         if not self or not CurrentModule then
             -- warn("Ran return")
-            return
-        end
+            return;
+        end;
 
-        if IsButtonDown == false then
+        if not IsButtonDown then
             break
-        end
+        end;
 
         --warn("Shooting")
         alreadyfiring = true
         task.spawn(RealFire)
         task.wait(CurrentModule.RPM)
+        
         if self and CurrentModule then
             if not CurrentModule.Automatic then
                 break
-            end
-        end
-    end
+            end;
+        end;
+    end;
+    
     alreadyfiring = false
     IsButtonDown = false
-end
+end;
 
 
 --[[
@@ -475,21 +471,18 @@ end
     if not Player.Character or Player.Character:WaitForChild("Humanoid").Health <= 0 then return end
 
     local equip, unequip
-    if equip then equip:Disconnect() end
-    if unequip then unequip:Disconnect() end
-
-    @native local function CleanUpConnections()
-        if equip then equip:Disconnect() equip = nil end
-        if unequip then unequip:Disconnect() unequip = nil end
-    end
-
+    
+    if equip then equip:Disconnect() end;
+    if unequip then unequip:Disconnect() end;
+    
     local AnimationCache = {}
 
     equip = gun.Equipped:Connect(@native function()
-        CleanUpConnections()
-        ResetWeaponState(false)
+        
+        ResetWeaponState()
         
         IsEquipped = true
+        
         local char = Player.Character or Player.CharacterAdded:Wait()
         og = char.Humanoid.WalkSpeed
         local hum = char.Humanoid
@@ -503,58 +496,59 @@ end
         self.ChildRemoved:Connect(@native function(Added: any)
             if Added.Name == "Settings" and Added:IsA("ModuleScript") then
                 Player:Kick("Settings module Altered. You have been kicked for security reasons.")
-            end
-        end)
+            end;
+        end);
         
-        for name, anim in pairs(CurrentAnimations) do
+        for name, anim in CurrentAnimations do
             if anim then
                 anim:Stop()
                 CurrentAnimations[name] = nil
-            end
-        end
+            end;
+        end;
 
-        task.spawn(@native function()
-            for name, Id in pairs(CurrentModule.Animations) do
+        do
+            for name, Id in CurrentModule.Animations do
                 if not AnimationCache[name] then
                     local NewAnimation = Instance.new("Animation")
                     NewAnimation.AnimationId = "rbxassetid://" .. Id
                     AnimationCache[name] = Animator:LoadAnimation(NewAnimation)
-                end
+                end;
                 CurrentAnimations[name] = AnimationCache[name]
-            end
-        end)
+            end;
+        end;
 
         if CurrentAnimations.Idle then
             CurrentAnimations.Idle:Play(0.2)
-        end
+        end;
 
         if IsMobile then
             Player.PlayerGui.MobileUI.Enabled = true
-        end
+        end;
 
 
         self.Activated:Connect(@native function()
             --warn("activ")
             Activated()
-        end)
+        end);
+        
         self.Deactivated:Connect(@native function()
             -- warn("deactive")
             IsButtonDown, alreadyfiring = false, false
-        end)
+        end);
 
 
         unequip = gun.Unequipped:Connect(@native function()
-            CleanUpConnections()
             if self and CurrentModule then if CurrentModule.CanCrawl then
                     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                     Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
                     Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
                     Player.Character:WaitForChild("Humanoid").WalkSpeed = og
-                end
-            end
-            for _, anim in pairs(CurrentAnimations) do
+                end;
+            end;
+            
+            for _, anim in CurrentAnimations do
                 anim:Stop()
-            end
+            end;
 
 
             self = nil
@@ -563,13 +557,13 @@ end
 
             if IsMobile then
                 Player.PlayerGui.MobileUI.Enabled = false
-            end
+            end;
 
-            ResetWeaponState(false)
+            ResetWeaponState()
 
-        end)
-    end)
-end
+        end);
+    end);
+end;
 
 
 --[[
@@ -581,25 +575,28 @@ end
 	--------------------------------------------------------------------------------------------------
 --]]
 UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
-    if gameProcessedEvent == true then 
-        return 
+    if gameProcessedEvent then 
+        return;
     end;
+    
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.X then
-        if IsEquipped ==  false then return end
-        if IsReloading == true then return end
-        if IsLowered  ==  true then return end
+        
+        if not IsEquipped or IsReloading or IsLowered then return end;
+        
         if CurrentModule.CanCrawl then
             IsCrawled = not IsCrawled
-            if IsCrawled == true then
+            if IsCrawled then
                 Player.CameraMaxZoomDistance = 7
                 Player.CameraMinZoomDistance = 7
                 UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+                
                 Player.Character:WaitForChild("Humanoid").WalkSpeed = 0
                 CurrentAnimations.Idle:Stop(0.2)
                 CurrentAnimations.Crawl:Play(0.2)
             else
                 Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
                 Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
+                
                 Player.CameraMode = Enum.CameraMode.Classic
                 UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                 Player.Character:WaitForChild("Humanoid").WalkSpeed = og
@@ -620,10 +617,10 @@ end);
 	--------------------------------------------------------------------------------------------------
 --]]
 Player.Character:WaitForChild("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):Connect(@native function()
-    if IsCrawled == true then
+    if IsCrawled then
         Player.Character:WaitForChild("Humanoid").WalkSpeed = 0
     else
-        return
+        return;
     end;
 end);
 
@@ -637,9 +634,7 @@ end);
 	--------------------------------------------------------------------------------------------------
 --]]
 ReloadButton.MouseButton1Click:Connect(@native function(gpe: boolean) 
-    if IsEquipped == false then return end;  -- just double checking
-    if IsCrawled == true then return end
-    if gpe then return end; -- also just double checking
+    if not IsEquipped or IsCrawled or gpe then return; end;
     Reload()
 end);
 
@@ -652,9 +647,7 @@ end);
 	--------------------------------------------------------------------------------------------------
 --]]
 LowerButton.MouseButton1Click:Connect(@native function(gpe: boolean) 
-    if IsEquipped == false then return end;  -- just double checking
-    if IsCrawled == true then return end
-    if gpe then return end;  -- alos just double checking
+    if not IsEquipped or IsCrawled or gpe then return; end;
     Holster()
 end);
 
@@ -667,12 +660,14 @@ end);
 	--------------------------------------------------------------------------------------------------
 --]]
 UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
-    if gameProcessedEvent == true then
-        return
+    if gameProcessedEvent then
+        return;
     end;
-    if IsCrawled == true then return end
+    
+    if IsCrawled then return; end;
+    
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.R then
-        if IsEquipped == false then return end
+        if not IsEquipped then return; end;
         Reload()
     end;
 end);
@@ -685,10 +680,10 @@ end);
 	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
 	--------------------------------------------------------------------------------------------------
 --]]
+
 UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
-    if IsEquipped == false then return end
-    if IsCrawled == true then return end
-    if gameProcessedEvent == true then return end;
+    if not IsEquipped or IsCrawled or gameProcessedEvent then return; end;
+
     if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.E then
         Holster()
     end;
@@ -699,16 +694,16 @@ if Player.Character then
     Player.Character.ChildAdded:Connect(@native function(child: Instance) 
         if child:IsA("Tool") and child:FindFirstChild("Settings") and child:FindFirstChild("Handle"):FindFirstChild("Muzzle") then
             InitWeapon(child)
-        end
-    end)
-end
+        end;
+    end);
+end;
 
 Player.CharacterAdded:Connect(@native function(character: Model) 
     Player.Character.ChildAdded:Connect(@native function(child: Instance) 
         if child:IsA("Tool") and child:FindFirstChild("Settings") and child:FindFirstChild("Handle"):FindFirstChild("Muzzle") then
             InitWeapon(child)
-        end
-    end)
-end)
+        end;
+    end);
+end);
 
 return FirearmClient
