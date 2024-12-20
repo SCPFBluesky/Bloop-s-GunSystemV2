@@ -42,9 +42,5 @@ return {
 ```
 The module defines ALL Team kill restrictions so you can add all of your teams here
 
-# Dictionary
-![image](https://github.com/user-attachments/assets/c6be13cd-3345-494a-84c0-c1f85f184e0f)
-
-This module is what defines the animations, stats etc for your gun (SOUNDS DONT DO ANYTHING YET!) this is required for you to make another table if you wish to add a custom gun
 
 
