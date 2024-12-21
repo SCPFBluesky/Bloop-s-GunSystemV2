@@ -8,7 +8,7 @@
 --]]
 
 --!native
---!nonstrict
+--!strict
 --!divine-intellect
 
 ---------------------------
@@ -18,13 +18,13 @@
 local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local CurrentFlashState = false
 local og
 
 local FirearmShared = game:GetService("ReplicatedStorage").FirearmShared
 local MuzzleEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle:GetChildren()
 
 local packet = require(game:GetService("ReplicatedStorage").packet)
-local packet2 = require(game:GetService("ReplicatedStorage").packet2)
 local Tagged = require(FirearmShared.Tagged)
 
 local ReloadRemote = FirearmShared.Remotes.Reload
@@ -36,7 +36,7 @@ local Player = game:GetService("Players").LocalPlayer
 local char = Player.Character or Player.CharacterAdded:Wait()
 
 local IsReloading, IsLowered, IsMobile, IsEquipped, IsButtonDown, alreadyfiring, FlashEnabled, AlreadyCloned, IsCrawled = false, false, false, false, false, false, false, false, false
-local self, CurrentModule = nil, nil
+local self, CurrentModule: any = nil, nil
 
 local IsReloading = false
 local IsLowered = false
@@ -54,12 +54,26 @@ local LowerButton = MobileHUD.LowerButton
 local ReloadButton = MobileHUD.ReloadButton
 local FlashButton = MobileHUD.Flashlight
 
-local CurrentAnimations = {
+type AnimationTable = {
+    Idle: AnimationTrack?,
+    Walk: AnimationTrack?,
+    Run: AnimationTrack?,
+    Lower: AnimationTrack?,
+    Reload: AnimationTrack?,
+    Crawl: AnimationTrack?,
+    Fire: AnimationTrack?
+}
+
+local CurrentAnimations: AnimationTable = {
     Idle = nil,
+    Walk = nil,
+    Run = nil,
     Lower = nil,
     Reload = nil,
-    Crawl = nil
+    Crawl = nil,
+    Fire = nil
 }
+
 
 ---------------------------
 --   R A Y C A S T   --
@@ -95,6 +109,30 @@ if UserInputService.TouchEnabled then
 end;
 
 
+@native function PlayAnimation(AnimationName: string, Time: number?)
+    local _Time = Time or 0.2
+    assert(AnimationName, "Attempt to call PlayAnimation with missing name!")
+
+    local Animation = CurrentAnimations[AnimationName]
+    assert(Animation, "Animation not found!")
+
+    if Animation then
+        Animation:Play(_Time)
+    end
+end
+
+
+@native function StopAnimation(AnimationName: string)
+    assert(AnimationName, "Attempt to call StopAnimation with missing name!")
+
+    local Animation = CurrentAnimations[AnimationName]
+    assert(Animation, "Animation not found!")
+
+    if Animation then
+        Animation:Stop()
+    end
+end
+
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  ResetWeaponState
@@ -106,7 +144,6 @@ end;
 @native function ResetWeaponState()
     IsLowered, IsReloading, IsButtonDown, IsEquipped, IsCrawled = false, false, false, false, false
 end;
-
 
 
 --[[
@@ -127,10 +164,12 @@ end;
     do
         CurrentModule.Ammo = 0
         ReloadRemote:FireServer(self)
-        CurrentAnimations.Reload:Play(0.2)
+        PlayAnimation("Reload", 0)
+        --CurrentAnimations.Reload:Play(0.2)
         IsReloading = true
     end
 
+    if CurrentAnimations.Reload then
     task.delay(CurrentAnimations.Reload.Length, @native function()
         if IsEquipped then
             if CurrentModule then
@@ -140,8 +179,9 @@ end;
         else
             CurrentAnimations.Reload:Stop()
             IsReloading = false
-        end;
-    end);
+             end;
+        end);
+    end
 end;
 
 
@@ -163,11 +203,11 @@ end;
     IsLowered = not IsLowered
 
     if IsLowered then
-        CurrentAnimations.Idle:Stop()
-        CurrentAnimations.Lower:Play(0.2)
+        StopAnimation("Idle")
+        PlayAnimation("Lower")
     else
-        CurrentAnimations.Lower:Stop()
-        CurrentAnimations.Idle:Play(0.2)
+        StopAnimation("Lower")
+        PlayAnimation("Idle")
     end;
 end;
 
@@ -314,7 +354,7 @@ end;
     attach.CFrame = CFrame.new(hitPos, hitPos + rayresult.Normal)
     
     local hithuam 
-    local RayInstance = rayresult.Instance or nil
+    local RayInstance: any = rayresult.Instance or nil
     
     if RayInstance and RayInstance.Parent and RayInstance.Parent:FindFirstChildWhichIsA("Humanoid") then
         hithuam = RayInstance.Parent.Humanoid
@@ -348,10 +388,15 @@ end;
     IsButtonDown = true
     
     while CurrentModule and self and Player.Character and Player.Character.Humanoid.Health > 0 and CurrentModule.Ammo > 0 and not IsReloading and not IsLowered and IsButtonDown do
+        
         if not self or not CurrentModule then
             return;
         end;
-
+        
+        if CurrentAnimations.Fire then
+            CurrentAnimations.Fire:Play()
+        end
+        
         if not IsButtonDown then
             break;
         end;
@@ -413,7 +458,7 @@ end;
             end;
         end);
         
-        for name, anim in CurrentAnimations do
+        for name, anim: any in CurrentAnimations do
             if anim then
                 anim:Stop()
                 CurrentAnimations[name] = nil
@@ -459,7 +504,7 @@ end;
                 end;
             end;
             
-            for _, anim in CurrentAnimations do
+            for _, anim: any in CurrentAnimations do
                 anim:Stop()
             end;
 
@@ -504,8 +549,9 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
                 UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
                 
                 Player.Character.Humanoid.WalkSpeed = 0
-                CurrentAnimations.Idle:Stop(0.2)
-                CurrentAnimations.Crawl:Play(0.2)
+                PlayAnimation("Crawl", 0.2)
+                StopAnimation("Idle")
+                --CurrentAnimations.Crawl:Play(0.2)
             else
                 Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
                 Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
@@ -513,8 +559,9 @@ UserInputService.InputBegan:Connect(@native function(input: InputObject, gamePro
                 Player.CameraMode = Enum.CameraMode.Classic
                 UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                 Player.Character.Humanoid.WalkSpeed = og
-                CurrentAnimations.Crawl:Stop(0.2)
-                CurrentAnimations.Idle:Play(0.2)
+                StopAnimation("Crawl")
+                PlayAnimation("Idle", 0.2)
+                --CurrentAnimations.Idle:Play(0.2)
             end;
         end;
     end;
@@ -529,7 +576,7 @@ end);
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
 --]]
-Player.Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(@native function()
+Player.Character:WaitForChild("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):Connect(@native function()
     if IsCrawled then
         Player.Character.Humanoid.WalkSpeed = 0
     else
@@ -593,7 +640,7 @@ end);
 	 @Params : 	      any: data the data that got sent to the fake remote
 	--------------------------------------------------------------------------------------------------
 --]]
-packet2.MKHitEffects.listen(@native function(data: any)
+packet.MKHitEffects.listen(@native function(data: any)
     local action = data.action
     local gun = data.gun
     local muzzlePos = data.muzzlePos
