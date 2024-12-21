@@ -18,7 +18,6 @@
 local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local CurrentFlashState = false
 local og
 
 local FirearmShared = game:GetService("ReplicatedStorage").FirearmShared
@@ -170,6 +169,7 @@ end;
     end
 
     if CurrentAnimations.Reload then
+        
     task.delay(CurrentAnimations.Reload.Length, @native function()
         if IsEquipped then
             if CurrentModule then
@@ -394,7 +394,7 @@ end;
         end;
         
         if CurrentAnimations.Fire then
-            CurrentAnimations.Fire:Play()
+            PlayAnimation("Fire")
         end
         
         if not IsButtonDown then
@@ -477,7 +477,7 @@ end;
         end;
 
         if CurrentAnimations.Idle then
-            CurrentAnimations.Idle:Play(0.2)
+            PlayAnimation("Idle", 0.2)
         end;
 
         if IsMobile then
