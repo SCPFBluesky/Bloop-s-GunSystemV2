@@ -7,8 +7,8 @@
 	Information: Serverside of the gun sytem
 --]]
 
+--!strict
 --!native
---!nonstrict
 --!divine-intellect
 
 ---------------------------
@@ -16,12 +16,12 @@
 ---------------------------
 
 local FirearmServer = {}
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
 local IsCloned, IsEnabled = false,false
 
 local packet = require(game:GetService("ReplicatedStorage").packet)
-local packet2 = require(game:GetService('ReplicatedStorage').packet2)
 local CreateSound = require(game:GetService("ReplicatedStorage").CreateSound)
 local ClientRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Client
 
@@ -34,9 +34,6 @@ local ReloadRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.
 local TeamPriorityModule = require(game:GetService("ReplicatedStorage").FirearmShared.TeamPriorityModule)
 
 local PhysService = game:GetService("PhysicsService")
-PhysService:RegisterCollisionGroup("Accessory")
-PhysService:RegisterCollisionGroup("Bullets")
-PhysService:CollisionGroupSetCollidable("Bullets", "Accessory", false)
 
 ---------------------------
 --   S E T T I N G S   --
@@ -49,6 +46,16 @@ local Settings = {
     EnableS19ReloadSounds = true -- Enables S19 Reload (Magin \ Magout Sounds) + Mag Transparency else, Will revert to the normal single reload sound if there is one
 
 }
+
+
+------------------------------
+-- I N I T  C O L L I S I O N --
+------------------------------
+
+PhysService:RegisterCollisionGroup("Accessory")
+PhysService:RegisterCollisionGroup("Bullets")
+PhysService:CollisionGroupSetCollidable("Bullets", "Accessory", false)
+
 
 ---------------------------
 -- M A I N   S C R I P T --
@@ -63,7 +70,7 @@ local Settings = {
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function GetTeamPriority(teamName: string, PlayerWhoFired: Player)
-    for priorityLevel, teams in TeamPriorityModule do
+    for priorityLevel: any, teams: any in TeamPriorityModule do
         for _, team in teams do
             if team == teamName then
                 local priority = tonumber(priorityLevel:match("%d+"))
@@ -95,8 +102,8 @@ end;
     end
 
     if not PlayerWhoFired.Team then
-        return
-    end
+        return true;
+    end;
 
     local PlrTeam = PlayerWhoFired.Team.Name
     local TargetTeam = targetPlr.Team.Name
@@ -110,8 +117,8 @@ end;
     
 
     if targetPlr.Character:GetAttribute("Zombie") == true then
-        return true
-    end
+        return true;
+    end;
 
     if PlrPriority == 1 then
         if TargetPirority == 1 then
@@ -151,6 +158,8 @@ end;
     if PlrPriority == 3 then
         return true;
     end;
+ 
+    return false;
 end;
 
 
@@ -181,8 +190,10 @@ end;
         
         end;
     end;
- 
-    local Settings = require(gun.Settings)
+    
+    local Module: ModuleScript = gun:FindFirstChild("Settings") :: ModuleScript
+    local Settings = require(Module) -- how do i make this shut up??
+    
     local MagPart = nil
     
     if gun and gun.Handle then
@@ -247,7 +258,7 @@ end;
 
         local hitInstance = raycastResult.Instance or nil
 
-        if typeof(raycastResult.Instance) ~= "Instance" or typeof(raycastResult.Normal) ~= "Vector3" or finalHitPosition == nil or typeof(finalHitPosition) ~= "Vector3" or not hitInstance then
+        if typeof(raycastResult.Instance) ~= "Instance" or typeof(raycastResult.Normal) ~= "Vector3" or not finalHitPosition or typeof(finalHitPosition) ~= "Vector3" or not hitInstance then
             return;
         end;
 
@@ -288,6 +299,8 @@ end;
 
 ReloadRemote.OnServerEvent:Connect(Reload)
 
+
+
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  Listen (https://ffrostfall.github.io/ByteNet/api/functions/definePacket/)
@@ -303,7 +316,7 @@ packet.discharge.listen(@native function(data: any, player: Player?)  -- please 
     local RayCastResult = data.hitInfo
 
 
-    packet2.MKHitEffects.sendToAllExcept({
+    packet.MKHitEffects.sendToAllExcept({
         action = "DisplayEffects",
         gun = gun,
         muzzlePos = MuzzlePos,
@@ -327,14 +340,32 @@ packet.discharge.listen(@native function(data: any, player: Player?)  -- please 
     )
 end)
 
+
+
+
+task.delay(1.5, @native function()
+    for _,v in workspace:GetDescendants() do
+        task.wait()
+        if v:IsA("Accessory") then
+            for _,v in v:GetDescendants() do
+                if v:IsA("BasePart") then
+                    CollectionService:AddTag(v, "RayIgnore")
+                    PhysService:SetPartCollisionGroup(v, "Accessory")
+                end
+            end
+        end
+    end
+end)
+
 do
     Players.PlayerAdded:Connect(@native function(player: Player) 
         player.CharacterAdded:Connect(@native function(character: Model)  
             task.wait(1)
             for _,v in character:GetChildren() do
                 if v:IsA("Accessory") then
-                    for _,v in v:GetChildren() do
+                    for _,v in v:GetDescendants() do
                         if v:IsA("BasePart") then
+                            CollectionService:AddTag(v, "RayIgnore")
                             PhysService:SetPartCollisionGroup(v, "Accessory")
                         end
                     end
