@@ -241,23 +241,26 @@ end;
 		local GiveTool
 
 		for _, v in game:GetService("ServerStorage"):GetDescendants() do
-			if v.Name == tostring(Tool) and v:IsA("Tool") then
+			if v.Name == tostring(Tool) then
 				GiveTool = v
 				break;
 			end;
 		end;
 		
 		if GiveTool and not DropConnect then
+			if playerWhoTriggered.Character.Humanoid.Health <= 0 then
+				return;
+			end;
 			
-			local Pickup = CreateSound.new(526686369, "Pickup", 0.5, Tool.Handle)
+			local Pickup = CreateSound.new(526686369, "Pickup", 0.4, playerWhoTriggered.Character.HumanoidRootPart)
 			Pickup:Play()
 			local New = GiveTool:Clone()
 			New.Parent = playerWhoTriggered.Backpack
+			Tool:Destroy()
 			
 			task.delay(Pickup.TimeLength, @native function()
-				Tool:Destroy()
+				Pickup:Destroy()
 			end);
-			
 		end;
 	end);
 end;
