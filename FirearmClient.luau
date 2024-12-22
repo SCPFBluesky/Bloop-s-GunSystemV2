@@ -248,7 +248,13 @@ end;
     end;
 
     local FirearmCooldown = CurrentModule.RPM
-
+	
+	if CurrentModule.Cooldown then
+	if os.clock() - CurrentModule.Cooldown < DebouncedRate then
+		return;
+		end;
+	end;
+	
     if os.clock() - DebouncedRate < FirearmCooldown then
         return;
     end;
@@ -331,7 +337,7 @@ end;
                     Clone.Parent = muzzle
 
                     if Clone:IsA("ParticleEmitter") then
-                        Clone:Emit(15)
+                        Clone:Emit(20)
                     end;
 
                     local lifetime = (Clone.Name == "Light") and 0.1 or 3
@@ -685,3 +691,4 @@ Player.CharacterAdded:Connect(@native function(character: Model)
 end);
 
 return FirearmClient
+
