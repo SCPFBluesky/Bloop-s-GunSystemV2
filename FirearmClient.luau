@@ -22,13 +22,13 @@ local og
 
 local FirearmShared = game:GetService("ReplicatedStorage").FirearmShared
 local MuzzleEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle:GetChildren()
+local Settings = require(game:GetService("ReplicatedStorage").FirearmShared.GunConfig)
 
 local packet = require(game:GetService("ReplicatedStorage").packet)
 local Tagged = require(FirearmShared.Tagged)
 
 local ReloadRemote = FirearmShared.Remotes.Reload
 local HitEffects = FirearmShared.Stuff.Effects
-local FlashRemote = FirearmShared.Remotes.Flashlight
 
 local FirearmClient = {}
 local Player = game:GetService("Players").LocalPlayer
@@ -88,15 +88,6 @@ local MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE = 0.8, 0.8
 local SPREAD_INCREMENT = 0.6
 local MAX_SPREAD_ANGLE = 13
 
-
----------------------------
---   S E T T I N G S   --
----------------------------
-
-local Settings = {
-    ShowBlood = true, -- Show blood?
-    ShowMuzzleEffects = true, -- Show muzzle?
-}
 
 
 ---------------------------
@@ -529,6 +520,9 @@ end;
     end);
 end;
 
+------------------------------
+-- END OF FILE --
+------------------------------
 
 --[[
 	--------------------------------------------------------------------------------------------------
@@ -590,6 +584,24 @@ Player.Character:WaitForChild("Humanoid"):GetPropertyChangedSignal("WalkSpeed"):
     end;
 end);
 
+
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
+	 @Author :        @DrBIoop
+	 @Description :   (PC) Drop
+	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
+	--------------------------------------------------------------------------------------------------
+--]]
+UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
+	if gameProcessedEvent or not Settings.EnableDropWeapons or not self or not CurrentModule or not CurrentModule.WeaponDropable then
+		return;
+	end;	
+	
+	if input.KeyCode == Enum.KeyCode.Q then
+		game:GetService("ReplicatedStorage").FirearmShared.Remotes.Drop:FireServer(self)
+	end;
+end);
 
 --[[
 	--------------------------------------------------------------------------------------------------
