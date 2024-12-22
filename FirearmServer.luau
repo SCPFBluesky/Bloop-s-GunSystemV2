@@ -27,25 +27,15 @@ local ClientRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.
 
 local HitEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Effects
 local MuzzleEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle
-local FlashlightRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Flashlight
 
 local Notify = game:GetService("ReplicatedStorage").NotifyPlayer
 local ReloadRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Reload
 local TeamPriorityModule = require(game:GetService("ReplicatedStorage").FirearmShared.TeamPriorityModule)
+local Settings = require(game:GetService("ReplicatedStorage").FirearmShared.GunConfig)
 
 local PhysService = game:GetService("PhysicsService")
 
----------------------------
---   S E T T I N G S   --
----------------------------
 
-local Settings = {
-    AlwaysDamage = false; -- Enabling this disables ALL team kill restrictions
-    NotifyPlayer = true; -- Enable notifcations
-    EnableGuiltySystem = true; -- Enable CD Guilty system
-    EnableS19ReloadSounds = true -- Enables S19 Reload (Magin \ Magout Sounds) + Mag Transparency else, Will revert to the normal single reload sound if there is one
-
-}
 
 
 ------------------------------
@@ -74,18 +64,18 @@ PhysService:CollisionGroupSetCollidable("Bullets", "Accessory", false)
         for _, team in teams do
             if team == teamName then
                 local priority = tonumber(priorityLevel:match("%d+"))
-                return priority
+                return priority;
             end;
         end;
     end;
 
     if not PlayerWhoFired or not PlayerWhoFired:IsA("Player") then
-        return nil
+        return nil;
     end;
 
     Notify:FireClient(PlayerWhoFired, "This player's team isn't defined in the Team Priority Module. If you see this, report this to the owner of the game.")
     warn("Team is nil, did you specify all teams in the module correctly?")
-    return nil
+    return nil;
 end;
 
 --[[
@@ -98,7 +88,7 @@ end;
 --]]
 @native function TeamCheck(PlayerWhoFired: Player, targetPlr: any, gun: Tool)
     if Settings.AlwaysDamage == true and PlayerWhoFired ~= targetPlr then
-        return true
+        return true;
     end
 
     if not PlayerWhoFired.Team then
@@ -162,7 +152,115 @@ end;
     return false;
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  DropGun
+	 @Author :        @DrBIoop
+	 @Description :   Drops the player's weapon
+	 @Params : 	      Player: Player - The player Any: gun - The gun
+	--------------------------------------------------------------------------------------------------
+--]]
+@native function DropGun(Player: Player, Tool: any)
+	-- this is rushed! but it works and thats what i care about
+	
+	if not Tool:IsDescendantOf(Player.Character) and not Tool:IsDescendantOf(Player.Backpack) then
+		Player:Kick("Attempt to perform weapon drop without passing the Sanity Check. You have been kicked for security reasons.")
+		return;
+	end;
+	
+	local DropConnect
 
+	
+	Tool:SetAttribute("IsStill", false)
+	Tool.Handle.CanTouch = false
+	Tool.Enabled = false
+	Tool.Parent = workspace
+	
+	local Prompt = Instance.new("ProximityPrompt")
+	Prompt.Parent = Tool.Handle
+	Prompt.ActionText = tostring(Tool)
+	Prompt.KeyboardKeyCode = Enum.KeyCode.Q
+	Prompt.RequiresLineOfSight = false
+	Prompt.ObjectText = ""
+	Prompt.MaxActivationDistance = 5
+
+	for _, v in Tool:GetDescendants() do
+		if v:IsA("BasePart") then
+			local Box = Instance.new("SelectionBox")
+			Box.Parent = v
+			Box.Adornee = v
+			Box.LineThickness = 0.03
+			Box.Color3 = Color3.fromRGB(54, 136, 31)
+
+			if not v.CanCollide then
+				v:SetNetworkOwner(nil)
+				v.CanCollide = true
+			end;
+			
+		elseif v:IsA("BaseScript") then
+			v.Disabled = true
+		end;
+	end;
+
+
+	local past = Tool.Handle.Position
+	
+	task.delay(1, @native function()
+		DropConnect = game:GetService("RunService").Heartbeat:Connect(@native function()
+			if not Tool:FindFirstChild("Handle") then
+				return;
+			end;
+			local current = Tool.Handle.Position
+			if (current - past).Magnitude < 0.01 then
+				Tool:SetAttribute("IsStill", true)
+			end;
+			past = current
+		end);
+	end);
+
+	Tool:GetAttributeChangedSignal("IsStill"):Connect(@native function()
+		if Tool:GetAttribute("IsStill") then
+			if DropConnect then
+				DropConnect:Disconnect()
+				DropConnect = nil
+			end;
+			
+			for _, v in Tool:GetDescendants() do
+				if v:IsA("BasePart") then
+					v.Anchored = true
+				end;
+			end;
+		end;
+	end);
+
+	Prompt.Triggered:Once(@native function(playerWhoTriggered: Player)
+		if playerWhoTriggered.Backpack:FindFirstChild(tostring(Tool)) then
+			return;
+		end;
+		
+		local GiveTool
+
+		for _, v in game:GetService("ServerStorage"):GetDescendants() do
+			if v.Name == tostring(Tool) then
+				GiveTool = v
+				break;
+			end;
+		end;
+		
+		if GiveTool and not DropConnect then
+			
+			local Pickup = CreateSound.new(526686369, "Pickup", 0.5, Tool.Handle)
+			Pickup:Play()
+			local New = GiveTool:Clone()
+			New.Parent = playerWhoTriggered.Backpack
+			
+			task.delay(Pickup.TimeLength, @native function()
+				Tool:Destroy()
+			end);
+			
+		end;
+	end);
+end;
 
 
 --[[
@@ -342,11 +440,21 @@ packet.discharge.listen(@native function(data: any, player: Player?)  -- please 
         data.damage,
         data.finalHitPos,
         data.hitInfo
-    )
-end)
+	)
+	
+end);
+
+
+game:GetService("ReplicatedStorage").FirearmShared.Remotes.Drop.OnServerEvent:Connect(@native function(Player: Player, Gun: any)
+	DropGun(Player, Gun)	
+	
+end);
 
 
 
+------------------------------
+-- END OF FILE --
+------------------------------
 
 task.delay(1.5, @native function()
     for _,v in workspace:GetDescendants() do
@@ -364,7 +472,7 @@ end)
 
 do
     Players.PlayerAdded:Connect(@native function(player: Player) 
-        player.CharacterAdded:Connect(@native function(character: Model)  
+		player.CharacterAdded:Connect(@native function(character: Model)  
             task.wait(1)
             for _,v in character:GetChildren() do
                 if v:IsA("Accessory") then
