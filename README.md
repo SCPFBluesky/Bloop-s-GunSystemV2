@@ -1,46 +1,111 @@
-# Site 19 Gun System Replica V2
+# Bloop's gun system V2 (Site-19 Gun system V2) (impending doom gun system)
 
-# NOTE I WILL NO LONGER BE PROVIDING .RBXL FILES PLEASE GO HERE FOR RELEASES THE PLACE IS UNCOPYLOCKED IT IS JUST EASYIER FOR ME TO PROVIDE RELEASES I AM A FAT LAZY PIECE OF SHIT, PLEASE JUST DO IT: https://www.roblox.com/games/95481417748754/new-gun-system-test
+## 🚨 Notice
+I am no longer uploading `.rbxl` files to the github since my fatass is too lazy. The release is now on an uncopylocked place on my roblox profile.  
+🔗 **[Click here for releases](https://www.roblox.com/games/95481417748754/new-gun-system-test)**  
 
-# A complete and total rewrite from last time!
+---
 
-# This gun system was made to replicate the gun system found in "Site-19 Roleplay" made by AdministratorGnar and ThunderGemios10
+## ✨ What is this?
+This is a complete and total rewrite of the original gun system i made back in V3, this is made to replicate the gun system found in **"Site-19 Roleplay"** by AdministratorGnar and ThunderGemios10 but with extra stuff to make it more cool. 
 
-# This system includes almost all features of the gun system including ACTUAL Mobile support
+## ✨ So what's new?
+The gun system comes with BIG significant improvements and additional features, including **actual mobile support**. (also fixes input delay also known as "fire" delay) (those who were in v3 know.....) (this shit drove me insane in v3 😭)
 
-# Inside the Settings inside "FirearmClient" (Client) there are currently in total of 2 Settings (will add more soon!)
+---
 
-```lua
-local Settings = {
-	ShowBlood = true; -- Show blood?
-	ShowMuzzleEffects = true; -- Show muzzle?
-}
-```
-# There are also 4 MORE Options inside FirearmServer (Server)
+## 🛠️ System-Features
 
-```lua
-local Settings = {
-	AlwaysDamage = false; -- Enabling this disables ALL team kill restrictions
-	NotifyPlayer = true; -- Enable notifcations
-	EnableGuiltySystem = true; -- Enable CD Guilty system
-	EnableS19ReloadSounds = true -- Enables S19 Reload (Magin \ Magout Sounds) + Mag Transparency else, Will revert to the normal single reload sound if there is one
-}
-```
+- Fully functional gun system as you'd expect.
+- Smooth firing.
+- Matained often and new features to come in the future.
+- Also has support for Mobile Devices.  
+- Customizable Settings found in the module ("GunConfig") .  
+- Team-based kill restrictions via a "Priority" System.
+- Also has a custom drop system which is cool i think .
 
-# If you want to make a certian tool hostile (upon equip CDS become hostile) scroll down on the tool until you reach Tags and click the + and add the tag called "Hostile"
-![image](https://github.com/user-attachments/assets/9fff060b-f70c-4142-ae45-18b5eab518e0)
+---
+In ``ReplicatedStorage.FirearmShared`` there is a module called "GunConfig" this defines all the customizable options you can configure in the gun system
+
+## ⚙️ So what are all the Options?
+
+### 1. **ShowMuzzleEffects**  
+- **Default**: `True`
+  
+- **Description**: Enables or disables muzzle effects.  
+
+### 2. **ShowBlood**  
+- **Default**: `True`
+  
+- **Description**: Enables or disables blood effects.  
+
+### 3. **AlwaysDamage**  
+- **Default**: `False`
+  
+- **Description**: Ignores all team-based kill restrictions, allowing unrestricted combat.  
+
+### 4. **NotifyPlayer**  
+- **Default**: `True`
+  
+- **Description**: Enables or disables the notification system.  
+
+### 5. **EnableGuiltySystem**  
+- **Default**: `True`
+
+- **Description**: Controls the Class-D Guilty check.
+  
+  - If `True`, Class D will only be damaged if they are guilty.  
+  - If `False`, Class D can always be damaged.  
+
+### 6. **EnableS19ReloadSounds**  
+- **Default**: `True`
+  
+- **Description**: turns on \ off the Site-19 reload system, including:
+  - Mag-in and mag-out sounds.  
+  - Magazine transparency.  
+  - If `False`, falls back to the default reload sound in the muzzle (if it even exists).  
+
+### 7. **EnableDropWeapons**  
+ `NOTE!: IN THE GUN SETTINGS OF THE ACTUAL GUN YOU CAN CONFIGURE IF YOU WANT THE GUN TO BE DROPABLE OR NOT! `
+ 
+- **Default**: `True`
+  
+- **Description**: Enables or disables the weapon drop system.
+  - If true, and  WeaponDropable is true in the gun settings, by pressing Q you may trigger the custom drop system.
+  - **Warning**: impending doom..
 
 
-# Inside Replicated Storage you will find a module called "TeamPriorityModule"
+![image](https://github.com/user-attachments/assets/851defcd-5e55-4584-a14b-48a790e0d774)
 
-```lua
-return {
-	["Priority1"] = {"Class D", "Chaos Insurgency"}, --Class D and Hostile teams
-	["Priority2"] = {"Security Department", "MTF Beta-7", "MTF Epsilon-11", "MTF Nu-7", "Intelligence Agency", "Scientific Department", "Medical Department","Janitor"}, -- Normal foundation teams
-	["Priority3"] = {"RAISA", "Ethics Committee", "Site Director", "Administrative Department", "MTF Omega-1", "MTF Alpha-1","Internal Security Department"} -- TK Foundation teams
-}
-```
-The module defines ALL Team kill restrictions so you can add all of your teams here
+---
+
+## 🧩 Other Features
+
+### Class D Guilty System
+To make a specific tool "guilty" (When a class d equips the tool it will make them guilty) :  
+1. Scroll down untill you reach the tags.  
+2. Click the + and add a new tag called `Hostile` OR `Guilty`.  
+
+![image](https://github.com/user-attachments/assets/7540d4df-3237-4059-ab8d-8713d02546cb)
 
 
+---
 
+### Anti TeamKill System
+The `TeamPriorityModule` inside **ReplicatedStorage** defines all team kill restrictions.  
+You can add or modify your teams and their restrictions directly in this module.  
+
+## 1. Priority1
+- These will be your basic Hostiel teams (Example: Chaos Insurgency, Class D)
+
+## 2. Priority2
+- These will be your Non-TK Teams (Example: Security Department and MTF Beta-7)
+
+## 3. Priority3
+- These will be you team kill teams (Example: Adminstrative, MTF Alpha-1)
+  
+![image](https://github.com/user-attachments/assets/63795e72-1a39-4765-a339-1abf6e1195fe)
+
+
+Contributions \ edits are welcome! feel free to fork at your own need.
+---
