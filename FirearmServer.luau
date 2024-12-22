@@ -241,7 +241,7 @@ end;
 		local GiveTool
 
 		for _, v in game:GetService("ServerStorage"):GetDescendants() do
-			if v.Name == tostring(Tool) then
+			if v.Name == tostring(Tool) and v:IsA("Tool") then
 				GiveTool = v
 				break;
 			end;
