@@ -210,7 +210,14 @@ end;
    -- warn(typeof(MagPart))
    -- warn(MagPart)
 
-     if not MagPart or not MagPart:IsA("BasePart") or not gun:IsDescendantOf(Char) then
+	if not gun:IsDescendantOf(Char) then
+		return;
+	end;
+	
+	 if not MagPart or not MagPart:IsA("BasePart") then
+			if gun.Handle.Muzzle:FindFirstChild("Reload") then
+				gun.Handle.Muzzle.Reload:Play()
+			end
         return;
      end;
 
@@ -294,8 +301,6 @@ end;
         --print((os.clock()-s)*1e+6, "μs")
     end;
 end;
-
-
 
 ReloadRemote.OnServerEvent:Connect(Reload)
 
