@@ -7,5 +7,7 @@ return{
 	NotifyPlayer = true;
 	EnableGuiltySystem = true;
 	EnableS19ReloadSounds = true;
-	EnableDropWeapons = true
+	EnableDropWeapons = true;
+	EnableAltSpread =  false
+
 };
