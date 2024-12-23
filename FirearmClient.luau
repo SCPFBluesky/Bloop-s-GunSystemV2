@@ -195,10 +195,10 @@ end;
 
     if IsLowered then
         StopAnimation("Idle")
-        PlayAnimation("Lower")
+		PlayAnimation("Lower", 0.100000001)
     else
         StopAnimation("Lower")
-        PlayAnimation("Idle")
+		PlayAnimation("Idle", 0.100000001)
     end;
 end;
 
@@ -282,18 +282,19 @@ end;
         Normal = finalRaycastResult and finalRaycastResult.Normal or nil
     }
 
-    mkHitEffects("DisplayEffects", self, headPos, finalHitPos, raycastResult)
+	task.spawn(@native function()
+		mkHitEffects("DisplayEffects", self, headPos, finalHitPos, raycastResult)
 
-    packet.discharge.send({
-        gun = self,
-        action = "Discharge",
-        muzzlePos = headPos,
-        bulletDirection = bulletDirection,
-        damage = CurrentModule.Damage,
-        finalHitPos = finalHitPos,
-        hitInfo = RayResult
-    });
-    
+		packet.discharge.send({
+			gun = self,
+			action = "Discharge",
+			muzzlePos = headPos,
+			bulletDirection = bulletDirection,
+			damage = CurrentModule.Damage,
+			finalHitPos = finalHitPos,
+			hitInfo = RayResult
+		});
+	end);
 end;
 
 
@@ -331,8 +332,7 @@ end;
                         Clone:Emit(20)
                     end;
 
-                    local lifetime = (Clone.Name == "Light") and 0.1 or 3
-                    game:GetService("Debris"):AddItem(Clone, lifetime)
+					game:GetService("Debris"):AddItem(Clone, Clone.Name == "Light" and 0.1 or 5)
                 end;
             end;
         end;
@@ -358,13 +358,13 @@ end;
     end 
     
     if hithuam then
-        if Settings.ShowBlood == true then
-            attach.Blood:Emit(20)
+		if Settings.ShowBlood == true then
+            attach.Blood:Emit(10)
         end;
     else
-        attach.Flash:Emit(20)
-        attach.Smoke:Emit(20)
-        game:GetService("Debris"):AddItem(attach, attach.Smoke.Lifetime.Max + 0.1)
+        attach.Flash:Emit(10)
+        attach.Smoke:Emit(10)
+        game:GetService("Debris"):AddItem(attach, 2)
     end;
 end;
 
@@ -483,7 +483,7 @@ end;
 
 
         self.Activated:Connect(@native function()
-            Activated()
+			task.spawn(Activated)
         end);
         
         self.Deactivated:Connect(@native function()
@@ -595,8 +595,8 @@ end);
 --]]
 UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
 	if gameProcessedEvent or not Settings.EnableDropWeapons or not self or not CurrentModule or not CurrentModule.WeaponDropable then
-		return;
-	end;	
+		return
+	end	
 	
 	if input.KeyCode == Enum.KeyCode.Q then
 		game:GetService("ReplicatedStorage").FirearmShared.Remotes.Drop:FireServer(self)
@@ -665,7 +665,10 @@ packet.MKHitEffects.listen(@native function(data: any)
     local hitPos = data.hitPos
     local rayresult = data.rayresult
 
-    mkHitEffects(action, gun, muzzlePos, hitPos, rayresult)
+	task.spawn(@native function()
+		mkHitEffects(action, gun, muzzlePos, hitPos, rayresult)
+	end);
+	
 end);
 
 --[[
