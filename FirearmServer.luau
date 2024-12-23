@@ -242,11 +242,13 @@ end;
 		end;
 		
 		if GiveTool and not DropConnect then
-			if playerWhoTriggered.Character.Humanoid.Health <= 0 then
+			local Char: any = playerWhoTriggered.Character or playerWhoTriggered.CharacterAdded:Wait()
+			
+			if Char.Humanoid.Health <= 0 then
 				return;
 			end;
 			
-			local Pickup = CreateSound.new(526686369, "Pickup", 0.4, playerWhoTriggered.Character.HumanoidRootPart)
+			local Pickup = CreateSound.new(526686369, "Pickup", 0.4, Char.HumanoidRootPart)
 			Pickup:Play()
 			local New = GiveTool:Clone()
 			New.Parent = playerWhoTriggered.Backpack
@@ -286,8 +288,9 @@ end;
         end;
     end;
     
-    local Module: ModuleScript = gun:FindFirstChild("Settings") :: ModuleScript
-    local Settings = require(Module) -- how do i make this shut up??
+	local Module = gun:FindFirstChild("Settings") :: ModuleScript
+	
+    local Settings = require(Module) :: any
     
     local MagPart = nil
     
