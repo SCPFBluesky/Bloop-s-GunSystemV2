@@ -186,12 +186,6 @@ end;
 
 	for _, v in Tool:GetDescendants() do
 		if v:IsA("BasePart") then
-			local Box = Instance.new("SelectionBox")
-			Box.Parent = v
-			Box.Adornee = v
-			Box.LineThickness = 0.03
-			Box.Color3 = Color3.fromRGB(54, 136, 31)
-
 			if not v.CanCollide then
 				v:SetNetworkOwner(nil)
 				v.CanCollide = true
@@ -264,6 +258,7 @@ end;
 		end;
 	end);
 end;
+
 
 --[[
 	--------------------------------------------------------------------------------------------------
@@ -375,7 +370,7 @@ end;
             do
                 local hitHumanoid
 
-                if hitInstance and hitInstance.Parent and hitInstance.Parent:FindFirstChildWhichIsA("Humanoid") then
+				if hitInstance and hitInstance.Parent and hitInstance.Parent:FindFirstChildWhichIsA("Humanoid") then
                     hitHumanoid = hitInstance.Parent.Humanoid
                 end;
                 
@@ -390,8 +385,11 @@ end;
 
                 if hitHumanoid then
                     local targetPlayer = Players:GetPlayerFromCharacter(hitHumanoid.Parent)
-
-                    if targetPlayer == nil or TeamCheck(player, targetPlayer, self) then
+					if targetPlayer == nil or TeamCheck(player, targetPlayer, self) then
+						local HitSFX = CreateSound.new(2615387841, "Hit", 0.5, hitHumanoid.Parent.HumanoidRootPart)
+						HitSFX.RollOffMaxDistance = 50
+						HitSFX:Play()
+						game:GetService("Debris"):AddItem(HitSFX, 2)
                         hitHumanoid:TakeDamage(dmg)
                     end;
                 end;
