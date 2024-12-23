@@ -74,6 +74,10 @@ In ``ReplicatedStorage.FirearmShared`` there is a module called "GunConfig" this
   - If true, and  WeaponDropable is true in the gun settings, by pressing Q you may trigger the custom drop system.
   - **Warning**: impending doom..
 
+### 8. AltSpread
+- **Default**: `False`
+- **Description**: Enables or disables Site-19 Spread system (spread gets worse untill you stop firing)
+
 
 ![image](https://github.com/user-attachments/assets/851defcd-5e55-4584-a14b-48a790e0d774)
 
