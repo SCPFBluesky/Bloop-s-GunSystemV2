@@ -45,6 +45,7 @@ local RNG = Random.new()
 local TAU = math.pi * 2
 local Mouse = Player:GetMouse()
 
+local SpreadTime = {}
 local FiringConnection
 local LastFire = 0
 
@@ -244,6 +245,13 @@ end;
 	if os.clock() - CurrentModule.Cooldown < DebouncedRate then
 		return;
 		end;
+	end;
+	
+	if Settings.EnableAltSpread then
+		SpreadTime[Player] = (SpreadTime[Player] or 0) + 0.02
+		local NewSpread = math.min(SpreadTime[Player] * SPREAD_INCREMENT, MAX_SPREAD_ANGLE)
+		MIN_BULLET_SPREAD_ANGLE += NewSpread
+		MAX_BULLET_SPREAD_ANGLE += NewSpread
 	end;
 	
     if os.clock() - DebouncedRate < FirearmCooldown then
@@ -446,7 +454,8 @@ end;
 
         self = gun
      
-        CurrentModule = require(gun:FindFirstChild("Settings"))
+		CurrentModule = require(gun:FindFirstChild("Settings")) :: ModuleScript
+		
         assert(CurrentModule, "Gun does NOT have Current Module!")
         
         self.ChildRemoved:Connect(@native function(Added: any)
@@ -487,7 +496,8 @@ end;
         end);
         
         self.Deactivated:Connect(@native function()
-            IsButtonDown, alreadyfiring = false, false
+			IsButtonDown, alreadyfiring, SpreadTime = false, false, {}
+			MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE, MAX_SPREAD_ANGLE = 0.8, 0.8, 13
         end);
 
 
