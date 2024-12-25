@@ -20,9 +20,9 @@ The gun system comes with BIG significant improvements and additional features, 
 - Smooth firing.
 - Matained often and new features to come in the future.
 - Also has support for Mobile Devices.  
-- Customizable Settings found in the module ("GunConfig") .  
+- Customizable Settings found in the module ("GunConfig").  
 - Team-based kill restrictions via a "Priority" System.
-- Also has a custom drop system which is cool i think .
+- Also has a custom drop system which is cool i think.
 
 ---
 In ``ReplicatedStorage.FirearmShared`` there is a module called "GunConfig" this defines all the customizable options you can configure in the gun system
