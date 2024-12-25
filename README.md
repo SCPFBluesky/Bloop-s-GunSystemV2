@@ -1,4 +1,4 @@
-# Bloop's gun system V2 (Site-19 Gun system V2) (impending doom gun system)
+# Bloop's gun system V2 (Impending doom gun system)
 
 ## 🚨 Notice
 I am no longer uploading `.rbxl` files to the github since my fatass is too lazy. The release is now on an uncopylocked place on my roblox profile.  
@@ -7,7 +7,7 @@ I am no longer uploading `.rbxl` files to the github since my fatass is too lazy
 ---
 
 ## ✨ What is this?
-This is a complete and total rewrite of the original gun system i made back in V3, this is made to replicate the gun system found in **"Site-19 Roleplay"** by AdministratorGnar and ThunderGemios10 but with extra stuff to make it more cool. 
+This is a complete and total rewrite of the original gun system i made back in V3.
 
 ## ✨ So what's new?
 The gun system comes with BIG significant improvements and additional features, including **actual mobile support**. (also fixes input delay also known as "fire" delay) (those who were in v3 know.....) (this shit drove me insane in v3 😭)
@@ -76,7 +76,7 @@ In ``ReplicatedStorage.FirearmShared`` there is a module called "GunConfig" this
 
 ### 8. AltSpread
 - **Default**: `False`
-- **Description**: Enables or disables Site-19 Spread system (spread gets worse untill you stop firing)
+- **Description**: Enables or disables Site-19 Style Spread system (spread gets worse untill you stop firing)
 
 
 ![image](https://github.com/user-attachments/assets/851defcd-5e55-4584-a14b-48a790e0d774)
