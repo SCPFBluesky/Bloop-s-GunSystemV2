@@ -1,7 +1,7 @@
 --[[
-	FirearmClient.Luau
+	FirearmClass.Luau
 	--------------------
-	Author(s): @DrBIoop
+	Author(s): @WATDAHECKLOL32
 	Date: 11-1-24
 	Runtime: Shared 
 	Information: Client side of the gun sytem
@@ -15,6 +15,9 @@
 --   V A R I A B L E S   --
 ---------------------------
 
+local NormalRequire = require
+local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread")
+
 local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -22,12 +25,9 @@ local og
 
 local FirearmShared = game:GetService("ReplicatedStorage").FirearmShared
 local MuzzleEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle:GetChildren()
-local Settings = require(game:GetService("ReplicatedStorage").FirearmShared.GunConfig)
+local Settings = require("GunConfig")
 
-local packet = require(game:GetService("ReplicatedStorage").packet)
-local Tagged = require(FirearmShared.Tagged)
 
-local ReloadRemote = FirearmShared.Remotes.Reload
 local HitEffects = FirearmShared.Stuff.Effects
 
 local FirearmClient = {}
@@ -127,7 +127,7 @@ end
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  ResetWeaponState
-	 @Author : @DrBIoop
+	 @Author : @WATDAHECKLOL32
 	 @Description : Resets all state control to default values
 	 @Params : 	 None
 	--------------------------------------------------------------------------------------------------
@@ -140,21 +140,22 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  Reload
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Function to reload the weapon
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function Reload()
-    if not IsEquipped or not self or not Player.Character or not Player.Character:FindFirstChild("Humanoid") or Player.Character.Humanoid.Health <= 0 or IsReloading then
+@native function FirearmClient.Reload()
+    if not IsEquipped or not self or not Player.Character or not Player.Character:FindFirstChild("Humanoid") or Player.Character.Humanoid.Health <= 0 or IsReloading or IsCrawled then
         return;
     end;
 
     if IsLowered or CurrentModule.Ammo == CurrentModule.MaxAmmo then return end;
     
     do
-        CurrentModule.Ammo = 0
-        ReloadRemote:FireServer(self)
+		CurrentModule.Ammo = 0
+		network:FireServer("Reload", self)
+      --  ReloadRemote:FireServer(self)
         PlayAnimation("Reload", 0)
         --CurrentAnimations.Reload:Play(0.2)
         IsReloading = true
@@ -180,12 +181,12 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  Holster
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Holsters the user's current weapon
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function Holster()
+@native function FirearmClient.Holster()
     if not self or not Player.Character or not Player.Character:FindFirstChild("Humanoid") or Player.Character.Humanoid.Health <= 0 or IsReloading then
         return
     end;
@@ -206,7 +207,7 @@ end;
 
 
 @native function getIgnorelist(items: any)
-    local ignore = Tagged("RayIgnore")
+    local ignore = tagged("RayIgnore")
 
     for _, object in items do
         table.insert(ignore, 1, object)
@@ -226,96 +227,17 @@ end;
     return self and islaoded() and not IsReloading and not IsLowered
 end;
 
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name : 	 	  RealFire
-	 @Author :        @DrBIoop
-	 @Description :   Shoots the user's current gun
-	 @Params : 	      none
-	--------------------------------------------------------------------------------------------------
---]]
-@native function RealFire()
-    if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 or not char:FindFirstChild("Head") then
-        return;
-    end;
-
-    local FirearmCooldown = CurrentModule.RPM
-	
-	if CurrentModule.Cooldown then
-	if os.clock() - CurrentModule.Cooldown < DebouncedRate then
-		return;
-		end;
-	end;
-	
-	if Settings.EnableAltSpread then
-		SpreadTime[Player] = (SpreadTime[Player] or 0) + 0.02
-		local NewSpread = math.min(SpreadTime[Player] * SPREAD_INCREMENT, MAX_SPREAD_ANGLE)
-		MIN_BULLET_SPREAD_ANGLE += NewSpread
-		MAX_BULLET_SPREAD_ANGLE += NewSpread
-	end;
-	
-    if os.clock() - DebouncedRate < FirearmCooldown then
-        return;
-    end;
-
-    local GunData = self:FindFirstChild("Settings")
-    
-    if not GunData then
-        Player:Kick("Gun settings not found in your gun. You have been kicked for security reasons.")
-    end;
-
-    RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
-
-    DebouncedRate = os.clock()
-    CurrentModule.Ammo -= 1
-
-    local cameraRay = workspace.CurrentCamera:ScreenPointToRay(Mouse.X, Mouse.Y)
-    local spreadCF = CFrame.new(Vector3.new(), cameraRay.Direction) *
-        CFrame.fromOrientation(0, 0, RNG:NextNumber(0, TAU)) *
-        CFrame.fromOrientation(math.rad(RNG:NextNumber(MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE)), 0, 0)
-    local spreadDirection = spreadCF.LookVector
-
-    local raycastResult = workspace:Raycast(cameraRay.Origin, spreadDirection * CONST_RANGE, RayParams)
-    local aimPoint = raycastResult and raycastResult.Position or (cameraRay.Origin + spreadDirection * CONST_RANGE)
-
-    local head = Player.Character and Player.Character:FindFirstChild("Head")
-    local headPos = head.Position
-    local bulletDirection = (aimPoint - headPos).Unit
-
-    local finalRaycastResult = workspace:Raycast(headPos, bulletDirection * CONST_RANGE, RayParams)
-    local finalHitPos = finalRaycastResult and finalRaycastResult.Position or aimPoint
-
-    local RayResult = {
-        Instance = finalRaycastResult and finalRaycastResult.Instance or nil,
-        Normal = finalRaycastResult and finalRaycastResult.Normal or nil
-    }
-
-	task.spawn(@native function()
-		mkHitEffects("DisplayEffects", self, headPos, finalHitPos, raycastResult)
-
-		packet.discharge.send({
-			gun = self,
-			action = "Discharge",
-			muzzlePos = headPos,
-			bulletDirection = bulletDirection,
-			damage = CurrentModule.Damage,
-			finalHitPos = finalHitPos,
-			hitInfo = RayResult
-		});
-	end);
-end;
-
 
 
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  mkHitEffects
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Handles muzzle, blood, ground effects for the gun system
 	 @Params : 	      Action: string - exists for no reason Tool: Gun - The players gun MuzzlePosition: Vector3 - The players muzzle position, HitPos: Vector3 - RaycastHit, RayReult: any - Raycast Result
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function mkHitEffects(action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
+@native function FirearmClient.mkHitEffects(action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
     local FireSound = gun.Handle.Muzzle:FindFirstChild("FireSound") or gun.Handle.Muzzle.Fire:Clone()
     FireSound.Parent = gun.Handle
     FireSound.TimePosition = 0
@@ -380,59 +302,131 @@ end;
 --  C O N N E C T I O N S  --
 ---------------------------
 
+
+
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  Activated
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Handles when the player starts to shoot
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function Activated()
-    -- warn("function")
-    IsButtonDown = true
-    
-    while CurrentModule and self and Player.Character and Player.Character.Humanoid.Health > 0 and CurrentModule.Ammo > 0 and not IsReloading and not IsLowered and IsButtonDown do
-        
-        if not self or not CurrentModule then
-            return;
-        end;
-        
-        if CurrentAnimations.Fire then
-            PlayAnimation("Fire")
-        end
-        
-        if not IsButtonDown then
-            break;
-        end;
+	IsButtonDown = true
 
-        --warn("Shooting")
-        alreadyfiring = true
-        task.spawn(RealFire)
-        task.wait(CurrentModule.RPM)
-        
-        if self and CurrentModule then
-            if not CurrentModule.Automatic then
-                break;
-            end;
-        end;
-    end;
-    
-    alreadyfiring = false
-    IsButtonDown = false
+	while CurrentModule and self and Player.Character and Player.Character.Humanoid.Health > 0 and CurrentModule.Ammo > 0 and not IsReloading and not IsLowered and IsButtonDown do
+
+		if not self or not CurrentModule then
+			return;
+		end;
+
+		if CurrentAnimations.Fire then
+			PlayAnimation("Fire")
+		end;
+
+		if not IsButtonDown then
+			break;
+		end;
+
+		if not IsEquipped or not canfire() or CurrentModule.Ammo <= 0 or not char:FindFirstChild("Head") then
+			return;
+		end;
+
+		local FirearmCooldown = CurrentModule.RPM
+
+		if CurrentModule.Cooldown then
+			if os.clock() - CurrentModule.Cooldown < DebouncedRate then
+				return;
+			end;
+		end;
+
+		if Settings.EnableAltSpread then
+			SpreadTime[Player] = (SpreadTime[Player] or 0) + 0.02
+			local NewSpread = math.min(SpreadTime[Player] * SPREAD_INCREMENT, MAX_SPREAD_ANGLE)
+			MIN_BULLET_SPREAD_ANGLE += NewSpread
+			MAX_BULLET_SPREAD_ANGLE += NewSpread
+		end;
+
+		if os.clock() - DebouncedRate < FirearmCooldown then
+			return;
+		end;
+
+		local GunData = self:FindFirstChild("Settings")
+
+		if not GunData then
+			Player:Kick("Gun settings not found in your gun. You have been kicked for security reasons.")
+		end;
+
+
+		DebouncedRate = os.clock()
+		CurrentModule.Ammo -= 1
+
+		local cameraRay = workspace.CurrentCamera:ScreenPointToRay(Mouse.X, Mouse.Y)
+
+		local spreadCF = CFrame.new(Vector3.new(), cameraRay.Direction) *
+			CFrame.fromOrientation(0, 0, RNG:NextNumber(0, math.pi * 2)) *
+			CFrame.fromOrientation(math.rad(RNG:NextNumber(MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE)), 0, 0)
+		local spreadDirection = spreadCF.LookVector
+
+		local StartRay = workspace:Raycast(cameraRay.Origin, spreadDirection * CONST_RANGE, RayParams)
+		local Aimpoint = StartRay and StartRay.Position or (cameraRay.Origin + spreadDirection * CONST_RANGE)
+
+		local head = Player.Character and Player.Character:FindFirstChild("Head")
+		local headPos = head and head.Position or Vector3.zero
+
+		local bulletDirection = (Aimpoint - headPos).Unit
+
+		local raycastResult = workspace:Raycast(headPos, bulletDirection * CONST_RANGE, RayParams)
+
+		local finalHitPos = raycastResult and raycastResult.Position or Aimpoint
+		
+		local RayResult = {
+			Instance = raycastResult and raycastResult.Instance or nil,
+			Normal = raycastResult and raycastResult.Normal or nil,
+			Position = raycastResult and raycastResult.Position or Aimpoint
+		}
+
+
+		FirearmClient.mkHitEffects("DisplayEffects", self, headPos, finalHitPos, raycastResult)
+
+		network:FireServer("DischargeGun", self, "Discharge", headPos, bulletDirection, CurrentModule.Damage, finalHitPos, RayResult)
+		--[[packet.discharge.send({
+			gun = self,
+			action = "Discharge",
+			muzzlePos = headPos,
+			bulletDirection = bulletDirection,
+			damage = CurrentModule.Damage,
+			finalHitPos = finalHitPos,
+			hitInfo = RayResult
+		});]]
+
+		task.wait(CurrentModule.RPM)
+
+		if self and CurrentModule then
+			if not CurrentModule.Automatic then
+				break;
+			end;
+		end;
+	end;
+
+	alreadyfiring = false
+	IsButtonDown = false
 end;
 
 
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  InitWeapon
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Initializes the weapon
 	 @Params : 	      Tool: Tool - The equipped weapon to init
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function InitWeapon(gun: Tool)
     if not Player.Character or Player.Character.Humanoid.Health <= 0 then return; end;
+
+	RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
     local equip, unequip
     
@@ -454,7 +448,7 @@ end;
 
         self = gun
      
-		CurrentModule = require(gun:FindFirstChild("Settings")) :: ModuleScript
+		CurrentModule = NormalRequire(gun:FindFirstChild("Settings")) :: ModuleScript
 		
         assert(CurrentModule, "Gun does NOT have Current Module!")
         
@@ -534,54 +528,46 @@ end;
 -- END OF FILE --
 ------------------------------
 
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
-	 @Author :        @DrBIoop
-	 @Description :   M249 Crawling
-	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
-	--------------------------------------------------------------------------------------------------
---]]
-UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
-    if gameProcessedEvent then 
-        return;
-    end;
-    
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.X then
-        
-        if not IsEquipped or IsReloading or IsLowered then return end;
-        
-        if CurrentModule.CanCrawl then
-            IsCrawled = not IsCrawled
-            if IsCrawled then
-                Player.CameraMaxZoomDistance = 7
-                Player.CameraMinZoomDistance = 7
-                UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-                
-                Player.Character.Humanoid.WalkSpeed = 0
-                PlayAnimation("Crawl", 0.2)
-                StopAnimation("Idle")
-                --CurrentAnimations.Crawl:Play(0.2)
-            else
-                Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
-                Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
-                
-                Player.CameraMode = Enum.CameraMode.Classic
-                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-                Player.Character.Humanoid.WalkSpeed = og
-                StopAnimation("Crawl")
-                PlayAnimation("Idle", 0.2)
-                --CurrentAnimations.Idle:Play(0.2)
-            end;
-        end;
-    end;
-end);
+@native function FirearmClient.Drop()
+	if self and self.Parent and self.Parent == char then
+		network:FireServer("DropWeapon", self)
+	end;
+end;
+
+@native function FirearmClient.Crawl()
+		if not IsEquipped or IsReloading or IsLowered then return end;
+	
+		if CurrentModule.CanCrawl then
+			IsCrawled = not IsCrawled
+			if IsCrawled then
+				Player.CameraMaxZoomDistance = 7
+				Player.CameraMinZoomDistance = 7
+				UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+
+				Player.Character.Humanoid.WalkSpeed = 0
+				PlayAnimation("Crawl", 0.2)
+				StopAnimation("Idle")
+				--CurrentAnimations.Crawl:Play(0.2)
+			else
+				Player.CameraMaxZoomDistance = game:GetService("StarterPlayer").CameraMaxZoomDistance
+				Player.CameraMinZoomDistance = game:GetService("StarterPlayer").CameraMinZoomDistance
+
+				Player.CameraMode = Enum.CameraMode.Classic
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+				Player.Character.Humanoid.WalkSpeed = og
+				StopAnimation("Crawl")
+				PlayAnimation("Idle", 0.2)
+				--CurrentAnimations.Idle:Play(0.2)
+			end;
+		end;
+end;
+
 
 
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  GetPropertyChangedSignal (https://create.roblox.com/docs/reference/engine/classes/Instance#GetPropertyChangedSignal)
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Prevents users from walking during crawl
 	 @Params : 	      None
 	--------------------------------------------------------------------------------------------------
@@ -597,105 +583,28 @@ end);
 
 --[[
 	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
-	 @Author :        @DrBIoop
-	 @Description :   (PC) Drop
-	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
-	--------------------------------------------------------------------------------------------------
---]]
-UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
-	if gameProcessedEvent or not Settings.EnableDropWeapons or not self or not CurrentModule or not CurrentModule.WeaponDropable then
-		return
-	end	
-	
-	if input.KeyCode == Enum.KeyCode.Q then
-		game:GetService("ReplicatedStorage").FirearmShared.Remotes.Drop:FireServer(self)
-	end;
-end);
-
---[[
-	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  MouseButton1Click (https://create.roblox.com/docs/reference/engine/classes/GuiButton#MouseButton1Click)
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   (Mobile) Reload
 	 @Params : 	      boolean: gameProcessedEvent - GPE
 	--------------------------------------------------------------------------------------------------
 --]]
 ReloadButton.MouseButton1Click:Connect(@native function(gpe: boolean) 
     if not IsEquipped or IsCrawled or gpe then return; end;
-    Reload()
+    FirearmClient.Reload()
 end);
 
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Event : 	 	  MouseButton1Click (https://create.roblox.com/docs/reference/engine/classes/GuiButton#MouseButton1Click)
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   (Mobile) Holster
 	 @Params : 	      boolean: gameProcessedEvent - GPE
 	--------------------------------------------------------------------------------------------------
 --]]
 LowerButton.MouseButton1Click:Connect(@native function(gpe: boolean) 
     if not IsEquipped or IsCrawled or gpe then return; end;
-    Holster()
-end);
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
-	 @Author :        @DrBIoop
-	 @Description :   (PC) Reload
-	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
-	--------------------------------------------------------------------------------------------------
---]]
-UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
-    if gameProcessedEvent then
-        return;
-    end;
-    
-    if IsCrawled then return; end;
-    
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.R then
-        if not IsEquipped then return; end;
-        Reload()
-    end;
-end);
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  Listen (https://ffrostfall.github.io/ByteNet/api/functions/definePacket/)
-	 @Author :        @DrBIoop
-	 @Description :   Inits the remote event
-	 @Params : 	      any: data the data that got sent to the fake remote
-	--------------------------------------------------------------------------------------------------
---]]
-packet.MKHitEffects.listen(@native function(data: any)
-    local action = data.action
-    local gun = data.gun
-    local muzzlePos = data.muzzlePos
-    local hitPos = data.hitPos
-    local rayresult = data.rayresult
-
-	task.spawn(@native function()
-		mkHitEffects(action, gun, muzzlePos, hitPos, rayresult)
-	end);
-	
-end);
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  InputBegan (https://create.roblox.com/docs/reference/engine/classes/UserInputService#InputBegan)
-	 @Author :        @DrBIoop
-	 @Description :   (PC) Holster
-	 @Params : 	      InputObject: InputObject - players input, boolean: gameProcessedEvent - GPE
-	--------------------------------------------------------------------------------------------------
---]]
-
-UserInputService.InputBegan:Connect(@native function(input: InputObject, gameProcessedEvent: boolean) 
-    if not IsEquipped or IsCrawled or gameProcessedEvent then return; end;
-
-    if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.E then
-        Holster()
-    end;
+	FirearmClient.Holster()
 end);
 
 
