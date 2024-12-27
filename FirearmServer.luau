@@ -1,7 +1,7 @@
 --[[
 	FirearmServer.Luau
 	--------------------
-	Author(s): @DrBIoop
+	Author(s): @WATDAHECKLOL32
 	Date: 11-1-24
 	Runtime: Shared
 	Information: Serverside of the gun sytem
@@ -15,23 +15,22 @@
 --   V A R I A B L E S   --
 ---------------------------
 
+local NormalRequire = require
+local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread")
+
 local FirearmServer = {}
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
 local IsCloned, IsEnabled = false,false
 
-local packet = require(game:GetService("ReplicatedStorage").packet)
-local CreateSound = require(game:GetService("ReplicatedStorage").CreateSound)
-local ClientRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Client
+local CreateSound = require("CreateSound")
 
 local HitEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Effects
 local MuzzleEffects = game:GetService("ReplicatedStorage").FirearmShared.Stuff.Muzzle
 
-local Notify = game:GetService("ReplicatedStorage").NotifyPlayer
-local ReloadRemote = game:GetService("ReplicatedStorage").FirearmShared.Remotes.Reload
-local TeamPriorityModule = require(game:GetService("ReplicatedStorage").FirearmShared.TeamPriorityModule)
-local Settings = require(game:GetService("ReplicatedStorage").FirearmShared.GunConfig)
+local TeamPriorityModule = require("TeamPriority")
+local Settings = require("GunConfig")
 
 local PhysService = game:GetService("PhysicsService")
 
@@ -54,7 +53,7 @@ PhysService:CollisionGroupSetCollidable("Bullets", "Accessory", false)
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  GetTeamPriority
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Gets the player and the player's PriorityLevel in the module
 	 @Params : 	      string: teamName - The team name, player: PlayerWhoFired - Any player who shot the gun
 	--------------------------------------------------------------------------------------------------
@@ -73,7 +72,7 @@ PhysService:CollisionGroupSetCollidable("Bullets", "Accessory", false)
         return nil;
     end;
 
-    Notify:FireClient(PlayerWhoFired, "This player's team isn't defined in the Team Priority Module. If you see this, report this to the owner of the game.")
+	network:FireClient("NotifyPlayer", PlayerWhoFired, "This player's team isn't defined in the Team Priority Module. If you see this, report this to the owner of the game.")
     warn("Team is nil, did you specify all teams in the module correctly?")
     return nil;
 end;
@@ -81,7 +80,7 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  TeamCheck
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Teamchecks the players
 	 @Params : 	      Player: PlayerWhoFired - The player who fired the gun, any: targetPlr - The player who got shot, Tool: the player's gun
 	--------------------------------------------------------------------------------------------------
@@ -112,8 +111,9 @@ end;
 
     if PlrPriority == 1 then
         if TargetPirority == 1 then
-            if Settings.NotifyPlayer then
-                Notify:FireClient(PlayerWhoFired, "You cannot damage people on your own team.")
+			if Settings.NotifyPlayer then
+				network:FireClient("NotifyPlayer", PlayerWhoFired, "You cannot damage people on your own team.")
+               -- Notify:FireClient(PlayerWhoFired, "You cannot damage people on your own team.")
             end;
             return false;
             
@@ -128,18 +128,18 @@ end;
             return true;
         elseif TargetTeam == "Class D" then
             if Settings.EnableGuiltySystem then
-                if targetPlr.Character:GetAttribute("Guilty") then
+              	if targetPlr.Character:GetAttribute("Guilty") then
                    -- warn("impending doom")
                     return true;
-                elseif Settings.NotifyPlayer then
-                    Notify:FireClient(PlayerWhoFired, "You cannot damage Class Ds who did nothing wrong.")
+			     elseif Settings.NotifyPlayer then
+					network:FireClient("NotifyPlayer", PlayerWhoFired, "You cannot damage Class Ds who did nothing wrong.")
                 end;
                 return false;
             end;
             return true;
         elseif TargetPirority == 2 or TargetPirority == 3 then
-            if Settings.NotifyPlayer then
-                Notify:FireClient(PlayerWhoFired, "You cannot damage people who also work for the Foundation.")
+			if Settings.NotifyPlayer then
+				network:FireClient("NotifyPlayer", PlayerWhoFired, "YYou cannot damage people who also work for the Foundation.")
             end;
             return false;
         end;
@@ -155,13 +155,13 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  DropGun
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Drops the player's weapon
 	 @Params : 	      Player: Player - The player Any: gun - The gun
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function DropGun(Player: Player, Tool: any)
-	-- this is rushed! but it works and thats what i care about
+@native function FirearmServer.DropGun(Player: Player, Tool: any)
+	-- this is rushed! but it works well enough and thats what i care about
 	
 	if not Tool:IsDescendantOf(Player.Character) and not Tool:IsDescendantOf(Player.Backpack) then
 		Player:Kick("Attempt to perform weapon drop without passing the Sanity Check. You have been kicked for security reasons.")
@@ -265,12 +265,12 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  Reload
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Server sides the reload sounds
 	 @Params : 	      Player: Player - The player Any: gun - The gun
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function Reload(plr: Player, gun: any)
+@native function FirearmServer.Reload(plr: Player, gun: any)
     local Char = plr.Character or nil
     
     if not Char then
@@ -290,7 +290,7 @@ end;
     
 	local Module = gun:FindFirstChild("Settings") :: ModuleScript
 	
-    local Settings = require(Module) :: any
+    local Settings = NormalRequire(Module) :: any
     
     local MagPart = nil
     
@@ -348,12 +348,12 @@ end;
 --[[
 	--------------------------------------------------------------------------------------------------
 	 @Name : 	 	  Fire
-	 @Author :        @DrBIoop
+	 @Author :        @WATDAHECKLOL32
 	 @Description :   Handles hit detection
 	 @Params : 	      no
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function Fire(player: any, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: any)
+@native function FirearmServer.Fire(player: any, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: any)
     local self = gun
     
     if self == nil or not self:IsDescendantOf(workspace) or player.Character.Humanoid.Health == 0 then return; end;
@@ -398,60 +398,11 @@ end;
                 end;
             end;
         end;
-
+		network:FireAllClientsWithException(player, "mkHitEffects", "DisplayEffects", gun, muzzlePosition, finalHitPosition, raycastResult)
         --print((os.clock()-s)*1e+6, "μs")
     end;
 end;
 
-ReloadRemote.OnServerEvent:Connect(Reload)
-
-
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Event : 	 	  Listen (https://ffrostfall.github.io/ByteNet/api/functions/definePacket/)
-	 @Author :        @DrBIoop
-	 @Description :   Inits the remote event
-	 @Params : 	      any: data the data that got sent to the fake remote, player: player - the playedr!!!!
-	--------------------------------------------------------------------------------------------------
---]]
-packet.discharge.listen(@native function(data: any, player: Player?)  -- please work im begging you
-    local gun = data.gun
-    local MuzzlePos = data.muzzlePos
-    local HitPos = data.finalHitPos
-    local RayCastResult = data.hitInfo
-
-
-    packet.MKHitEffects.sendToAllExcept({
-        action = "DisplayEffects",
-        gun = gun,
-        muzzlePos = MuzzlePos,
-        hitPos = HitPos,
-        rayresult = {
-            Instance = RayCastResult.Instance,
-            Normal = RayCastResult.Normal    
-        }
-    }, player)
-
-
-    Fire(
-        player,
-        data.gun,
-        data.action,
-        data.muzzlePos,
-        data.bulletDirection,
-        data.damage,
-        data.finalHitPos,
-        data.hitInfo
-	)
-	
-end);
-
-
-game:GetService("ReplicatedStorage").FirearmShared.Remotes.Drop.OnServerEvent:Connect(@native function(Player: Player, Gun: any)
-	DropGun(Player, Gun)	
-	
-end);
 
 
 
