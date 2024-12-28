@@ -94,7 +94,6 @@ end;
         return true;
     end;
 
-	print(PlayerWhoFired:IsA("Player"))
 	
     local PlrTeam = PlayerWhoFired.Team.Name
     local TargetTeam = targetPlr.Team.Name
@@ -166,7 +165,6 @@ end;
 	-- this is rushed! but it works well enough and thats what i care about
 	
 	if not Tool:IsDescendantOf(Player.Character) and not Tool:IsDescendantOf(Player.Backpack) then
-		Player:Kick("Attempt to perform weapon drop without passing the Sanity Check. You have been kicked for security reasons.")
 		return;
 	end;
 	
@@ -399,9 +397,8 @@ end;
                     end;
                 end;
             end;
-        end;
-		network:FireAllClientsWithException(player, "mkHitEffects", "DisplayEffects", gun, muzzlePosition, finalHitPosition, raycastResult)
-        --print((os.clock()-s)*1e+6, "μs")
+		end;
+		--print((os.clock()-s)*1e+6, "μs")
     end;
 end;
 
