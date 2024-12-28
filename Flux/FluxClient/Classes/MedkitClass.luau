@@ -19,6 +19,23 @@
 	1st arg must always be "Tool"
 	
 	Very cheap way of doing it but it works well!
+	
+]]
+
+
+
+--[[
+
+You can also have Unequipped an Equipped functions.
+These are optional and not required to in order to work.
+
+@native function MedkitClass.Equipped(Tool: (Tool) )
+	print("euqio")	
+end;
+
+@native function MedkitClass.Unequipped(Tool: (Tool))
+	print("unequip")
+end;
 
 ]]
 
