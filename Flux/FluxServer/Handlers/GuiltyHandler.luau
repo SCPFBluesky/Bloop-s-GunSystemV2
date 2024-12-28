@@ -11,6 +11,7 @@
 
 local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread")
 
+local DOOM = {}
 
 local Players = game:GetService("Players")
 local folder = workspace:FindFirstChild("TrespassingZones")
@@ -72,3 +73,5 @@ if folder then
 		end
 	end
 end
+
+return DOOM
