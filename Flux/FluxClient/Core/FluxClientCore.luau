@@ -84,7 +84,7 @@ end
 
 @native function InitTool(Tool: Tool)
 	assert(Tool, "Attempt to call InitTool without a tool!")
-	
+
 	if Tool:IsA("Tool") then
 		local Class = Tool:GetAttribute("Class")
 		local ClassModule
@@ -95,31 +95,34 @@ end
 
 		ToolClass.RegisterTool(Tool)
 
-		Tool:GetAttributeChangedSignal("Class"):Connect(@native function()
-			Player:Kick("not smart enough!")
-		end);
+		do
+			Tool:GetAttributeChangedSignal("Class"):Connect(@native function()
+				Player:Kick("not smart enough!")
+			end);
 
-		Tool.Destroying:Connect(@native function()
-			ToolClass.UnRegisterTool(Tool)
-		end);
+			Tool.Destroying:Connect(@native function()
+				ToolClass.UnRegisterTool(Tool)
+			end);
 
-		Tool.Equipped:Connect(@native function(mouse: Mouse)
-			if ClassModule and ClassModule.Equipped then
-				ClassModule.Equipped(Tool)
-			end;
-		end);
+			Tool.Equipped:Connect(@native function(mouse: Mouse)
+				if ClassModule and ClassModule.Equipped then
+					ClassModule.Equipped(Tool)
+				end;
+			end);
 
-		Tool.Unequipped:Connect(@native function()
-			if ClassModule and ClassModule.Unequipped then
-				ClassModule.Unequipped(Tool)
-			end;
-		end);
+			Tool.Unequipped:Connect(@native function()
+				if ClassModule and ClassModule.Unequipped then
+					ClassModule.Unequipped(Tool)
+				end;
+			end);
 
-		Tool.Activated:Connect(@native function()
-			if ClassModule then
-				ClassModule.Activated(Tool)
-			end;
-		end);
+			Tool.Activated:Connect(@native function()
+				if ClassModule then
+					ClassModule.Activated(Tool)
+				end;
+			end);
+		end;
+		
 	end;
 end;
 
