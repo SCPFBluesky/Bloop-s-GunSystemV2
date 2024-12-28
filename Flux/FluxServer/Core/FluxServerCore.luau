@@ -38,6 +38,7 @@ local TextService = game:GetService("TextService")
 local ServerStorage = game:FindService("ServerStorage")
 local PhysService = game:GetService("PhysicsService")
 local TeleportService = game:GetService("TeleportService")
+local GuiltyHandler = require("GuiltyHandler")
 
 local CollectionService = game:GetService("CollectionService")
 
@@ -83,12 +84,11 @@ network:OnEvent({
 		FirearmServer.Reload(Player, gun)
 	end,
 	DropWeapon = @native function(Player: (Player), gun: any)
-		if gun and gun.Parent and gun.Parent == Player.Character then
-			FirearmServer.DropGun(Player, gun)
-		end;
+		FirearmServer.DropGun(Player, gun)
 	end,
 	
 	DischargeGun = @native function(Player: Player, gun: any, Action: string, MuzzlePos: Vector3, BulletDir: Vector3, Dmg: number, finalHitPos: Vector3, hitInfo: any)
+		network:FireAllClientsWithException(Player, "mkHitEffects", "DisplayEffects", gun, MuzzlePos, finalHitPos, hitInfo)
 		FirearmServer.Fire(Player, gun, Action, MuzzlePos, BulletDir, Dmg, finalHitPos, hitInfo)
 	end,
 	
