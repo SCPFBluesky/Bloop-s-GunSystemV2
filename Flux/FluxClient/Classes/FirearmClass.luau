@@ -485,11 +485,43 @@ end;
         end;
 
 
-        self.Activated:Connect(@native function()
+		self.Activated:Connect(@native function()
+			if IsMobile then
+				return;
+			end;
+			
 			task.spawn(Activated)
         end);
-        
+		
+		
+		UserInputService.TouchStarted:Connect(@native function(input: InputObject, GPE: (boolean) )
+			if UserInputService:GetFocusedTextBox() or GPE then
+				return;
+			end;
+			
+			
+			if input.UserInputType == Enum.UserInputType.Touch then
+				task.spawn(Activated)
+			end;
+		end);
+
+		UserInputService.TouchEnded:Connect(@native function(input: InputObject, GPE : (boolean) )
+			if UserInputService:GetFocusedTextBox() or GPE then
+				return;
+			end;
+	
+			
+			if input.UserInputType == Enum.UserInputType.Touch then
+				IsButtonDown, alreadyfiring, SpreadTime = false, false, {}
+				MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE, MAX_SPREAD_ANGLE = 0.8, 0.8, 13
+			end;
+		end);
+		
         self.Deactivated:Connect(@native function()
+			if IsMobile then
+				return;
+			end;
+			
 			IsButtonDown, alreadyfiring, SpreadTime = false, false, {}
 			MIN_BULLET_SPREAD_ANGLE, MAX_BULLET_SPREAD_ANGLE, MAX_SPREAD_ANGLE = 0.8, 0.8, 13
         end);
@@ -529,7 +561,7 @@ end;
 ------------------------------
 
 @native function FirearmClient.Drop()
-	if self and self.Parent and self.Parent == char then
+	if self then
 		network:FireServer("DropWeapon", self)
 	end;
 end;
