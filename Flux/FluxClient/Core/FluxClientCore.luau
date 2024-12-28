@@ -137,7 +137,7 @@ InputHandler.Functions = {
 	end,
 	
 	Drop = @native function(Down: (boolean), GPE: (boolean) )
-		if Down and not GPE then
+		if not GPE then
 			FirearmClass.Drop()
 		end		
 	end,
