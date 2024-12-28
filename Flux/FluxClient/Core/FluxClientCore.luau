@@ -86,24 +86,39 @@ end
 @native function HandleCharAdded()
 	Player.Backpack.ChildAdded:Connect(@native function(child: Instance) 
 		if child:IsA("Tool") then
+			local Class = child:GetAttribute("Class")
+			local ClassModule
+
+			if Class then
+				ClassModule = require(Class)
+			end;
+
 			ToolClass.RegisterTool(child)
 
 			child.Destroying:Connect(@native function() 
 				ToolClass.UnRegisterTool(child)
-			end)
+			end);
+
+			child.Equipped:Connect(@native function(mouse: Mouse) 
+				if ClassModule and ClassModule.Equipped then
+					ClassModule.Equipped(child)
+				end;
+			end);
+
+			child.Unequipped:Connect(@native function() 
+				if ClassModule and ClassModule.Unequipped then
+					ClassModule.Unequipped(child)
+				end;
+			end);
 
 			child.Activated:Connect(@native function()						
-				if child:GetAttribute("Class") then
-					local Class = child:GetAttribute("Class")
-					if Class then
-						local ClassModule = require(Class)
-						ClassModule.Activated(child)
-					end;
+				if ClassModule then
+					ClassModule.Activated(child)
 				end;
 			end);
 		end;	
 	end)
-	
+
 	for _,v: Tool in Player.Backpack:GetChildren() do
 		if v:IsA("Tool") then
 			ToolClass.RegisterTool(v)
