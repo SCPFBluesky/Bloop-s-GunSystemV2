@@ -1,6 +1,6 @@
 # Bloop's gun system V2
 
-## A free, open source, made from scratch gun system developed by the Flux Framework.
+## A free, open source, made from scratch gun system developed with the Flux Framework.
 
 ## 🚨 Notice
 I am no longer uploading `.rbxl` files to the github since my fatass is too lazy. The release is now on an uncopylocked place on my roblox profile.  
