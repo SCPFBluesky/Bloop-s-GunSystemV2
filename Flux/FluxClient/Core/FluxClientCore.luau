@@ -82,60 +82,57 @@ end
 -- F L U X  F U N C T I O N S --
 --------------------------------
 
+@native function InitTool(Tool: Tool)
+	assert(Tool, "Attempt to call InitTool without a tool!")
+	
+	if Tool:IsA("Tool") then
+		local Class = Tool:GetAttribute("Class")
+		local ClassModule
+
+		if Class then
+			ClassModule = require(Class)
+		end;
+
+		ToolClass.RegisterTool(Tool)
+
+		Tool:GetAttributeChangedSignal("Class"):Connect(@native function()
+			Player:Kick("not smart enough!")
+		end);
+
+		Tool.Destroying:Connect(@native function()
+			ToolClass.UnRegisterTool(Tool)
+		end);
+
+		Tool.Equipped:Connect(@native function(mouse: Mouse)
+			if ClassModule and ClassModule.Equipped then
+				ClassModule.Equipped(Tool)
+			end;
+		end);
+
+		Tool.Unequipped:Connect(@native function()
+			if ClassModule and ClassModule.Unequipped then
+				ClassModule.Unequipped(Tool)
+			end;
+		end);
+
+		Tool.Activated:Connect(@native function()
+			if ClassModule then
+				ClassModule.Activated(Tool)
+			end;
+		end);
+	end;
+end;
 
 @native function HandleCharAdded()
 	Player.Backpack.ChildAdded:Connect(@native function(child: Instance) 
 		if child:IsA("Tool") then
-			local Class = child:GetAttribute("Class")
-			local ClassModule
-
-			if Class then
-				ClassModule = require(Class)
-			end;
-
-			ToolClass.RegisterTool(child)
-
-			child.Destroying:Connect(@native function() 
-				ToolClass.UnRegisterTool(child)
-			end);
-
-			child.Equipped:Connect(@native function(mouse: Mouse) 
-				if ClassModule and ClassModule.Equipped then
-					ClassModule.Equipped(child)
-				end;
-			end);
-
-			child.Unequipped:Connect(@native function() 
-				if ClassModule and ClassModule.Unequipped then
-					ClassModule.Unequipped(child)
-				end;
-			end);
-
-			child.Activated:Connect(@native function()						
-				if ClassModule then
-					ClassModule.Activated(child)
-				end;
-			end);
-		end;	
-	end)
-
-	for _,v: Tool in Player.Backpack:GetChildren() do
+			InitTool(child)	
+		end;
+	end);
+	
+	for _,v in Player.Backpack:GetChildren() do
 		if v:IsA("Tool") then
-			ToolClass.RegisterTool(v)
-
-			v.Destroying:Connect(@native function() 
-				ToolClass.UnRegisterTool(v)
-			end)
-
-			v.Activated:Connect(@native function()						
-				if v:GetAttribute("Class") then
-					local Class = v:GetAttribute("Class")
-					if Class then
-						local ClassModule = require(Class)
-						ClassModule.Activated(v)
-					end;
-				end;
-			end);
+			InitTool(v)
 		end;
 	end;
 end;
