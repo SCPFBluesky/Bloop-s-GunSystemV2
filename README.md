@@ -1,5 +1,7 @@
 # Bloop's gun system V2 (Impending doom gun system)
 
+## NOW POWERED BY FLUX!
+
 ## 🚨 Notice
 I am no longer uploading `.rbxl` files to the github since my fatass is too lazy. The release is now on an uncopylocked place on my roblox profile.  
 🔗 **[Click here for releases](https://www.roblox.com/games/95481417748754/new-gun-system-test)**  
@@ -23,9 +25,10 @@ The gun system comes with BIG significant improvements and additional features, 
 - Customizable Settings found in the module ("GunConfig").  
 - Team-based kill restrictions via a "Priority" System.
 - Also has a custom drop system which is cool i think.
+- Powered by Flux V3
 
 ---
-In ``ReplicatedStorage.FirearmShared`` there is a module called "GunConfig" this defines all the customizable options you can configure in the gun system
+In ``ReplicatedStorage.Shared.Data` there is a module called "GunConfig" this defines all the customizable options you can configure in the gun system
 
 ## ⚙️ So what are all the Options?
 
@@ -96,7 +99,7 @@ To make a specific tool "guilty" (When a class d equips the tool it will make th
 ---
 
 ### Anti TeamKill System
-The `TeamPriorityModule` inside **ReplicatedStorage** defines all team kill restrictions.  
+The `TeamPriority` inside **ReplicatedStorage.Shared.Data** defines all team kill restrictions.  
 You can add or modify your teams and their restrictions directly in this module.  
 
 ## 1. Priority1
