@@ -84,26 +84,45 @@ end
 
 
 @native function HandleCharAdded()
+	Player.Backpack.ChildAdded:Connect(@native function(child: Instance) 
+		if child:IsA("Tool") then
+			ToolClass.RegisterTool(child)
+
+			child.Destroying:Connect(@native function() 
+				ToolClass.UnRegisterTool(child)
+			end)
+
+			child.Activated:Connect(@native function()						
+				if child:GetAttribute("Class") then
+					local Class = child:GetAttribute("Class")
+					if Class then
+						local ClassModule = require(Class)
+						ClassModule.Activated(child)
+					end;
+				end;
+			end);
+		end;	
+	end)
+	
 	for _,v: Tool in Player.Backpack:GetChildren() do
 		if v:IsA("Tool") then
 			ToolClass.RegisterTool(v)
-			
-				v.Destroying:Connect(@native function() 
-					ToolClass.UnRegisterTool(v)
-				end)
-				
-				v.Activated:Connect(@native function()
-				local ToolMain = v:FindFirstChild("Main")
-						
-				if ToolMain then
-					local Main = NormalRequire(ToolMain)
-					local ClassModule = require(Main.Class)
-					ClassModule.Activated(v)
+
+			v.Destroying:Connect(@native function() 
+				ToolClass.UnRegisterTool(v)
+			end)
+
+			v.Activated:Connect(@native function()						
+				if v:GetAttribute("Class") then
+					local Class = v:GetAttribute("Class")
+					if Class then
+						local ClassModule = require(Class)
+						ClassModule.Activated(v)
+					end;
 				end;
 			end);
 		end;
 	end;
-	
 end;
 
 --[[@native function OnRenderStep(DeltaTime: number)
