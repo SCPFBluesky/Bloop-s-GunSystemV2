@@ -1,6 +1,6 @@
-# Bloop's gun system V2 (Impending doom gun system)
+# Bloop's gun system V2
 
-## NOW POWERED BY FLUX!
+## A free, open source, made from scratch gun system developed by the Flux Framework.
 
 ## 🚨 Notice
 I am no longer uploading `.rbxl` files to the github since my fatass is too lazy. The release is now on an uncopylocked place on my roblox profile.  
