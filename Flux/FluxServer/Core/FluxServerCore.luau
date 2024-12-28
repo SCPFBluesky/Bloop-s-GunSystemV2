@@ -83,6 +83,17 @@ network:OnEvent({
 		
 		FirearmServer.Reload(Player, gun)
 	end,
+	useMedkit = @native function(Player: (Player), Tool: any)
+		if not Tool or Tool.Parent ~= Player.Character then
+			return;
+		end;
+		
+		Player.Character.Humanoid.Health = Player.Character.Humanoid.MaxHealth
+		
+		Tool:Destroy()
+		
+		network:FireClient(Player, "NotifyPlayer", "You start to feel better.")
+	end,
 	DropWeapon = @native function(Player: (Player), gun: any)
 		FirearmServer.DropGun(Player, gun)
 	end,
@@ -99,7 +110,7 @@ network:OnEvent({
 		network:FireAllClientsWithException(player, "ReplicateFlashLight", Tool, State)
 	end,
 	
-})
+});
 network:OnFunction({})
 
 ------------------------------------------------------------------------------
