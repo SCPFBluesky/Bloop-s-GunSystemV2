@@ -76,6 +76,45 @@ end;]]
 ---------------------------------------------
 
 network:OnEvent({
+	createKnifeSounds = @native function(Player: (Player), Tool : (any) )
+		if not Tool or Tool.Parent ~= Player.Character or not Tool:FindFirstChild("Main") or Tool:GetAttribute("Inited") then
+			return;
+		end;
+		Tool:SetAttribute("Inited", true)
+		
+		local MainModule = OldRequire(Tool.Main)
+		
+		for Name: (string), SoundID: (number) in MainModule.Sounds do
+			local New = CreateSound.new(SoundID, Name, 1, Tool.Handle)
+		end;
+		
+	end,
+	useMelee = @native function(Player: (Player), Tool: (Tool), rayResult: (any) )
+		if not Tool or Tool.Parent ~= Player.Character or not rayResult then
+			return;
+		end;
+		
+		local Handle = Tool.Handle
+		
+		Handle.Slash:Play()
+		local SlashFleshSounds = {"HitFlesh1", "HitFlesh2", "HitFlesh3"}
+		
+		if rayResult.Instance and rayResult.Instance.Parent then
+			local hitInstance = rayResult.Instance
+			local HitHumanoid
+			
+			if hitInstance and hitInstance.Parent and hitInstance.Parent:FindFirstChildWhichIsA("Humanoid") then
+				HitHumanoid = hitInstance.Parent.Humanoid
+			end;
+			
+			if HitHumanoid then
+				Handle[SlashFleshSounds[_Random:NextInteger(1, #SlashFleshSounds)]]:Play()
+				HitHumanoid:TakeDamage(20)
+			else
+				Handle.HitOther:Play()
+			end;
+		end;
+	end,
 	Reload =  @native function(Player: (Player), gun: any)
 		if not gun or gun.Parent ~= Player.Character then
 			return;
