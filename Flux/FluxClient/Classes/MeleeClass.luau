@@ -7,7 +7,10 @@
 ]]
 --!strict
 --!native
-task.wait(1)
+
+---------------------------
+--   V A R I A B L E S   --
+---------------------------
 
 local OldRequire = require
 local _Random = Random.new()
@@ -17,9 +20,6 @@ local require, network, tagged, asset, tween, thread = shared.import("require", 
 local CreateAnimation = require("CreateAnimation")
 
 local Player: (Player) = game:FindService("Players").LocalPlayer :: (Player)
-
-local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
-local Animator: (Animator) = Char:WaitForChild("Humanoid").Animator :: Animator
 local MeleeClass = {};
 
 local _RaycastParams = RaycastParams.new()
@@ -47,7 +47,21 @@ local Animations: Animations = {
 
 }
 
+---------------------------
+-- C L A S S F U N C T I O N S --
+---------------------------
+
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  AnimationControl
+	 @Author :        @WATDAHECKLOL32
+	 @Description :   Handles Animations
+	 @Params : 	      String: AnimationName - Name of the animation to play, Number? : Speed - The speed of the animation String: Arg - State control "Play"/"Stop"
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function MeleeClass:AnimationControl(AnimationName: (string) , Speed: (number?), Arg: (string) )
+	local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
+	
 	do
 		assert(AnimationName, "Attempt to call AnimationControl without a name.");
 		assert(Arg, "Attempt to call AnimationControl without an Arg.")
@@ -59,15 +73,26 @@ local Animations: Animations = {
 	end;
 	
 	if Animations[AnimationName] and Arg == "Play" then
-		-- warn("omg yes pla")
-		Animations[AnimationName]:Play(Speed)
+		if Char and Char:FindFirstChild("Humanoid") and Char.Humanoid.Health > 0 then
+			Animations[AnimationName]:Play(Speed)
+		end;
+		
 	elseif Arg == "Stop" then
 		Animations[AnimationName]:Stop(Speed)
 	end;
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  Activated
+	 @Author :        @WATDAHECKLOL32
+	 @Description :   Use function, gets called by the ToolHandler system
+	 @Params : 	      Tool : Tool - The Melee
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function MeleeClass.Activated(Tool : (any) )
 	assert(Tool, "[MeleeClass] Attempt to call Activated but no tool was passed.")
+	local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
 	
 	if DB or Tool.Parent ~= Char or Char.Humanoid.Health <= 0 then
 		return;
@@ -103,13 +128,24 @@ end;
 	task.delay(1.5, @native function()
 		DB = false
 		RandomSlash = nil
-	end);
-		
+	end);	
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  Equipped
+	 @Author :        @WATDAHECKLOL32
+	 @Description :   Equipped function, gets called by the ToolHandler system
+	 @Params : 	      Tool : Tool - The Melee
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function MeleeClass.Equipped(Tool: (Tool) )
 	assert(Tool, "[MeleeClass] Attempt to call Equipped but no tool was passed.")
 	
+	local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
+
+	local Animator = Char:WaitForChild("Humanoid").Animator
+
 	if not Tool:GetAttribute("Inited") then
 		Tool:SetAttribute("Inited", true)
 		network:FireServer("createKnifeSounds", Tool)
@@ -121,24 +157,31 @@ end;
 	
 	for Name : (string) , SoundID: (number) in MainModule.Animations do
 		local New = CreateAnimation.new(Animator, SoundID)
-		
+
 		Animations[Name] = New
 	end;
-	
 	
 	task.delay(0.1, @native function()
 		MeleeClass:AnimationControl("Idle", 0.2, "Play")
 	end);
 end;
 
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name : 	 	  Unequipped
+	 @Author :        @WATDAHECKLOL32
+	 @Description :   Unequipped function, gets called by the ToolHandler system
+	 @Params : 	      Tool : Tool - The Melee
+	--------------------------------------------------------------------------------------------------
+--]]
 @native function MeleeClass.Unequipped(Tool: (Tool) )
 	assert(Tool, "[MeleeClass] Attempt to call Unequipped but no tool was passed.")
-
-	for _,ActiveTracks: (any) in Animations do
-		ActiveTracks:Stop()
+	
+	for _,v: (any) in Animations do
+		v:Stop()
 	end;
-	
-	
 end;
+
+
 
 return MeleeClass;
