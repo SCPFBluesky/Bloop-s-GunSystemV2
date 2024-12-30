@@ -141,6 +141,10 @@ end;
 @native function MeleeClass.Equipped(Tool: (Tool) )
 	assert(Tool, "[MeleeClass] Attempt to call Equipped but no tool was passed.")
 	
+	if Animations.Idle and Animations.Idle.IsPlaying then
+		Animations.Idle:Stop()
+	end;
+	
 	local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
 
 	local Animator = Char:WaitForChild("Humanoid").Animator
@@ -173,15 +177,12 @@ end;
 	 @Params : 	      Tool : Tool - The Melee
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function MeleeClass.Unequipped(Tool: (Tool) )
-	repeat task.wait() until Animations.Idle ~= nil
-	
+@native function MeleeClass.Unequipped(Tool: (Tool) )	
 	assert(Tool, "[MeleeClass] Attempt to call Unequipped but no tool was passed.")
 	
 	for _,v: (any) in Animations do
 		v:Stop()
 	end;
-	
 end;
 
 
