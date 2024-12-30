@@ -51,16 +51,15 @@ local NotifyMessageText = Player.PlayerGui:WaitForChild("Notifcation System").Me
 local ToolClass = require("ToolHandler")
 local FirearmClass = require("FirearmClass")
 local InputHandler = require("InputHandler")
+
 local NotifyShown = false
 local Run = false
 local CanSprint = true
+local Ambient = Lighting.Ambient
 
 ---------------------------
 --      S E T U P        --
 ---------------------------
-
-
-
 
 local NotifcationTweens = {
 	FadeIn = {};
@@ -76,7 +75,7 @@ do
 
 	table.insert(NotifcationTweens.FadeIn, FadeinTween)
 	table.insert(NotifcationTweens.FadeOut, FadeOutTween)
-end
+end;
 
 --------------------------------
 -- F L U X  F U N C T I O N S --
@@ -86,14 +85,14 @@ end
 	assert(Tool, "Attempt to call InitTool without a tool!")
 
 	if Tool:IsA("Tool") then
+		ToolClass.RegisterTool(Tool)
+
 		local Class = Tool:GetAttribute("Class")
 		local ClassModule
 
 		if Class then
 			ClassModule = require(Class)
 		end;
-
-		ToolClass.RegisterTool(Tool)
 
 		do
 			Tool:GetAttributeChangedSignal("Class"):Connect(@native function()
@@ -122,7 +121,7 @@ end
 				end;
 			end);
 		end;
-		
+
 	end;
 end;
 
@@ -132,12 +131,15 @@ end;
 			InitTool(child)	
 		end;
 	end);
-	
+
 	for _,v in Player.Backpack:GetChildren() do
 		if v:IsA("Tool") then
 			InitTool(v)
 		end;
 	end;
+	
+	Lighting.Ambient = Ambient
+	Lighting:WaitForChild("NightVision").Enabled = false
 end;
 
 --[[@native function OnRenderStep(DeltaTime: number)
@@ -159,22 +161,31 @@ InputHandler.Functions = {
 			FirearmClass.Reload()
 		end;
 	end,
+	
 	Holster = @native function(Down: (boolean) , GPE: (boolean))
 		if Down and not GPE then
 			FirearmClass.Holster()
 		end;
 	end,
+	
 	Crawl = @native function(Down: (boolean), GPE: (boolean) )
 		if Down and not GPE then
 			FirearmClass.Crawl()
-		end		
+		end;
 	end,
-	
+
 	Drop = @native function(Down: (boolean), GPE: (boolean) )
 		if not GPE then
 			FirearmClass.Drop()
-		end		
+		end;
 	end,
+	
+	Flashlight = @native function(Down: (boolean), GPE: (boolean) )
+		if Down and not GPE then
+			network:FireServer("toggleFlashLight")
+		end;
+	end,
+
 }
 
 
@@ -182,15 +193,25 @@ network:OnEvent({
 	mkHitEffects = @native function(Action: string, gun: any, muzzlePos, hitPos, rayresult)
 		FirearmClass.mkHitEffects(Action, gun, muzzlePos, hitPos, rayresult)
 	end,
+	
+	useNVG = @native function(State: (boolean) )
+		Lighting.NightVision.Enabled = State
+		if State then
+			Lighting.Ambient = Color3.fromRGB(25, 227, 32)
+		else
+			Lighting.Ambient = Ambient
+		end
+	end,
+	
 	NotifyPlayer = function(Msg: string)
 		if NotifyShown then
 			NotifyMessageText.Text = Msg
 			return;
 		end;
-		
+
 		NotifyShown = true
 		NotifyMessageText.Text = Msg
-		
+
 		for _,v: (Tween) in NotifcationTweens.FadeIn do
 			v:Play()
 		end
@@ -202,7 +223,7 @@ network:OnEvent({
 				NotifyShown = false
 			end;
 		end);
-		
+
 	end,
 
 })
