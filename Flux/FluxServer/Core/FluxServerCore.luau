@@ -22,7 +22,9 @@ warn("[FLUX/SERVER/CORE] FluxServerCore has been Loaded!")
 --   V A R I A B L E S   --
 ---------------------------
 
+local OldRequire = require
 
+local _Random = Random.new()
 local require, network, thread, tagged, asset = shared.import("require", "network", "thread", "tagged", "asset")
 
 local newInstance = require("newInstance")
@@ -31,6 +33,7 @@ local Players = game:FindService("Players")
 local Teams = game:FindService("Teams")
 local Lighting = game:FindService("Lighting")
 
+local CreateSound = require("CreateSound")
 local FirearmServer = require("FirearmServer")
 local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
@@ -51,29 +54,24 @@ local CollectionService = game:GetService("CollectionService")
 -- F L U X  F U N C T I O N S --
 --------------------------------
 
---[[@native function HandleCharAdded(Player: Player, Team: Team)
-	local UniformFolder = ServerStorage.TeamUniforms:FindFirstChild(tostring(Team))
-	
-	for _,v in Player.Character:GetChildren() do
-		if v:IsA("Clothing") then
-			v:Destroy()
-		elseif v:IsA("Accessory") and Team:GetAttribute("RemoveHats") then
-			v:Destroy()
-		end;
-	end;
-	
-	if UniformFolder then
-		for _,v in UniformFolder:GetChildren() do
-			local New = v:Clone()
-			New.Parent = Player.Character
-		end;
-	end;
-end;]]
+@native function HandleCharAdded(Player: Player, Team: Team)
+	Player.Character:SetAttribute("Flashlight", false)
+end;
 
 
 ---------------------------------------------
 -- N E T W O R K \ C O N N E C T I O N S  --
 ---------------------------------------------
+
+for _,v in Players:GetPlayers() do
+	HandleCharAdded(v)
+end;
+
+Players.PlayerAdded:Connect(@native function(player: Player) 
+	player.CharacterAdded:Connect(@native function(character: Model) 
+		HandleCharAdded(player)	
+	end);
+end);
 
 network:OnEvent({
 	createKnifeSounds = @native function(Player: (Player), Tool : (any) )
@@ -89,6 +87,7 @@ network:OnEvent({
 		end;
 		
 	end,
+	
 	useMelee = @native function(Player: (Player), Tool: (Tool), rayResult: (any) )
 		if not Tool or Tool.Parent ~= Player.Character or not rayResult then
 			return;
@@ -115,6 +114,7 @@ network:OnEvent({
 			end;
 		end;
 	end,
+	
 	Reload =  @native function(Player: (Player), gun: any)
 		if not gun or gun.Parent ~= Player.Character then
 			return;
@@ -122,6 +122,7 @@ network:OnEvent({
 		
 		FirearmServer.Reload(Player, gun)
 	end,
+	
 	useMedkit = @native function(Player: (Player), Tool: any)
 		if not Tool or Tool.Parent ~= Player.Character then
 			return;
@@ -133,6 +134,7 @@ network:OnEvent({
 		
 		network:FireClient(Player, "NotifyPlayer", "You start to feel better.")
 	end,
+	
 	DropWeapon = @native function(Player: (Player), gun: any)
 		FirearmServer.DropGun(Player, gun)
 	end,
@@ -142,14 +144,76 @@ network:OnEvent({
 		FirearmServer.Fire(Player, gun, Action, MuzzlePos, BulletDir, Dmg, finalHitPos, hitInfo)
 	end,
 	
-	flashlight = @native function(player: (Player), Tool: (Tool), State: (boolean) )
-		if Tool == nil or not player.Character:FindFirstChild("Flashlight") or not player.Character:FindFirstChild("Flashlight").Main then
+	toggleFlashLight = @native function(Player: (Player))
+		if not Player.Character then
 			return;
 		end;
-		network:FireAllClientsWithException(player, "ReplicateFlashLight", Tool, State)
+		local FlashAttribute = Player.Character:GetAttribute("Flashlight")
+		
+		Player.Character:SetAttribute("Flashlight", not FlashAttribute)
+
+		local Goal = FlashAttribute
+		
+
+		if Player.Team == Teams["RAISA"] then
+			local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
+			new:Play()
+
+			task.delay(new.TimeLength, @native function()
+				new:Destroy()
+			end);
+			
+			local Hel = Player.Character:FindFirstChild("FlashlightHelmet")	
+		
+			if Hel and Hel.FlashPart then
+				local FlashPart: (any) = Hel.FlashPart :: (any)
+				local Node = FlashPart.node
+				
+				if Goal then
+					FlashPart.Material = Enum.Material.Neon
+				else
+					FlashPart.Material = Enum.Material.Glass
+				end;
+				
+				Node.Light.Enabled = Goal
+				repeat task.wait() Node.SpotLight.Enabled = Goal until Node.SpotLight.Enabled == Goal
+			end;
+		elseif Player.Team == Teams["MTF Alpha-1"] then
+			local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
+			new:Play()
+
+			task.delay(new.TimeLength, @native function()
+				new:Destroy()
+			end);
+			
+			local NVG = Player.Character:FindFirstChild("NVGHelmet")
+			
+			if NVG and NVG.NVGPart then
+				network:FireClient(Player, "useNVG", Goal)
+				local NVGPart = NVG.NVGPart
+				for _,v: (any) in NVGPart:GetChildren() do
+					if v.Name == "node" and v:IsA("Attachment") then
+						v.Light.Enabled = Goal
+					end;
+				end
+			end;
+		else
+			local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
+			new:Play()
+
+			task.delay(new.TimeLength, @native function()
+				new:Destroy()
+			end);
+			
+			local ToolOfInterset = Player.Character:FindFirstChildWhichIsA("Tool")
+			if ToolOfInterset and ToolOfInterset:FindFirstChild("Muzzle") and ToolOfInterset.Muzzle:FindFirstChild("SpotLight") then
+				local SpotLight = ToolOfInterset.Muzzle.SpotLight
+				SpotLight.Enabled = Goal
+			end;
+		end;
 	end,
 	
-});
+})
 network:OnFunction({})
 
 ------------------------------------------------------------------------------
