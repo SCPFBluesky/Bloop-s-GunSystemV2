@@ -94,16 +94,15 @@ end;
 	assert(Tool, "[MeleeClass] Attempt to call Activated but no tool was passed.")
 	local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
 	
-	if DB or Tool.Parent ~= Char or Char.Humanoid.Health <= 0 then
+	if DB or Tool.Parent ~= Char or Char.Humanoid.Health <= 0 or not Char:FindFirstChild("HumanoidRootPart") then
 		return;
 	end;
 	
-	_RaycastParams.FilterDescendantsInstances = {Char}
+	_RaycastParams.FilterDescendantsInstances = {Char, workspace.CurrentCamera}
 	
-	local Head: (BasePart) = Char.Head :: (BasePart)
-	local HeadPos: (Vector3) = Head.Position :: (Vector3) 
-	local direction: (Vector3) = Head.CFrame.LookVector :: (Vector3)
-	local Doom = workspace:Raycast(HeadPos, direction * 4.7, _RaycastParams)
+	local doomPos = Char.HumanoidRootPart.CFrame.Position
+	local HRPlookvec = Char.HumanoidRootPart.CFrame.LookVector 
+	local Doom = workspace:Raycast(doomPos, HRPlookvec * 5, _RaycastParams)
 	
 	local RayResult = {
 		Instance = Doom and Doom.Instance or nil;
@@ -175,11 +174,14 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function MeleeClass.Unequipped(Tool: (Tool) )
+	repeat task.wait() until Animations.Idle ~= nil
+	
 	assert(Tool, "[MeleeClass] Attempt to call Unequipped but no tool was passed.")
 	
 	for _,v: (any) in Animations do
 		v:Stop()
 	end;
+	
 end;
 
 
