@@ -51,6 +51,7 @@ local NotifyMessageText = Player.PlayerGui:WaitForChild("Notifcation System").Me
 local ToolClass = require("ToolHandler")
 local FirearmClass = require("FirearmClass")
 local InputHandler = require("InputHandler")
+local GunConfig = require("GunConfig")
 
 local NotifyShown = false
 local Run = false
@@ -175,7 +176,7 @@ InputHandler.Functions = {
 	end,
 
 	Drop = @native function(Down: (boolean), GPE: (boolean) )
-		if not GPE then
+		if not GPE and GunConfig.EnableDropWeapons then
 			FirearmClass.Drop()
 		end;
 	end,
