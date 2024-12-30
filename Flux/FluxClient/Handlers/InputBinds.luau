@@ -22,6 +22,12 @@ return {
 			Enum.UserInputType.Keyboard,
 			Enum.KeyCode.Q
 		}
-	}
+	};
+	Flashlight = {
+		{
+			Enum.UserInputType.Keyboard,
+			Enum.KeyCode.F
+		}
+	};
 	
 }
