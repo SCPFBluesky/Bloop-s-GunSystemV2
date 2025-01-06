@@ -103,7 +103,7 @@ The `TeamPriority` inside **ReplicatedStorage.Shared.Data** defines all team kil
 You can add or modify your teams and their restrictions directly in this module.  
 
 ## 1. Priority1
-- These will be your basic Hostiel teams (Example: Chaos Insurgency, Class D)
+- These will be your basic Hostile teams (Example: Chaos Insurgency, Class D)
 
 ## 2. Priority2
 - These will be your Non-TK Teams (Example: Security Department and MTF Beta-7)
