@@ -20,52 +20,55 @@ print("[FLUX/CLIENT/CORE] FluxClientCore has been Loaded!")
 --   V A R I A B L E S   --
 ---------------------------
 
-local NormalRequire = require
-local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread")
+local NormalRequire = require;
+local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread");
 
-shared.RegisteredTools = {}
+shared.RegisteredTools = {};
 
-local Random = Random.new()
-local createAnimation = require("createAnimation")
+local Random = Random.new();
+local createAnimation = require("createAnimation");
 
-local Lighting = game:FindService("Lighting")
-local Debris = game:GetService("Debris")
-local StarterGui = game:FindService("StarterGui")
+local Lighting = game:FindService("Lighting");
+local Debris = game:GetService("Debris");
+local StarterGui = game:FindService("StarterGui");
 
-local Players = game:FindService("Players")
-local RunService = game:GetService("RunService")
+local Players = game:FindService("Players");
+local RunService = game:GetService("RunService");
 
-local ReplicatedStorage = game:FindService("ReplicatedStorage")
-local CollectionService = game:GetService("CollectionService")
-local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:FindService("ReplicatedStorage");
+local CollectionService = game:GetService("CollectionService");
+local UserInputService = game:GetService("UserInputService");
 
-local GuiService = game:GetService("GuiService")
-local TweenService = game:GetService("TweenService")
-local TeleportService = game:GetService("TeleportService")
+local GuiService = game:GetService("GuiService");
+local TweenService = game:GetService("TweenService");
+local TeleportService = game:GetService("TeleportService");
 
-local Classes = script.Parent.Parent.Classes
-local Player = Players.LocalPlayer
-local Char = Player.Character or Player.CharacterAdded:Wait()
+local Classes = script.Parent.Parent.Classes;
+local Player = Players.LocalPlayer;
+local Char = Player.Character or Player.CharacterAdded:Wait();
 
-local NotifyMessageText = Player.PlayerGui:WaitForChild("Notifcation System").Message
-local ToolClass = require("ToolHandler")
-local FirearmClass = require("FirearmClass")
-local InputHandler = require("InputHandler")
-local GunConfig = require("GunConfig")
+local NotifyMessageText = Player.PlayerGui:WaitForChild("Notifcation System").Message;
 
-local NotifyShown = false
-local Run = false
-local CanSprint = true
-local Ambient = Lighting.Ambient
+local ToolClass = require("ToolHandler");
+local InputHandler = require("InputHandler");
+local GunConfig = require("GunConfig");
+local FirearmClass = require("FirearmClass");
 
+local NotifyShown = false;
+local Run = false;
+local CanSprint = true;
+local Ambient = Lighting.Ambient;
+
+local CurrentFirearm = nil;
 ---------------------------
 --      S E T U P        --
 ---------------------------
 
+
 local NotifcationTweens = {
 	FadeIn = {};
 	FadeOut = {}
-}
+};
 
 do
 	local NotifcationTweenInfo = TweenInfo.new(3.12, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, true)
@@ -85,44 +88,81 @@ end;
 @native function InitTool(Tool: Tool)
 	assert(Tool, "Attempt to call InitTool without a tool!")
 
-	if Tool:IsA("Tool") then
-		ToolClass.RegisterTool(Tool)
+	if Tool and Tool:HasTag("Firearm") then
+		local Class;
+		
+		repeat
+			task.wait()
+			Class = FirearmClass.new(Tool)
+		until Class and typeof(Class) == "table";
 
-		local Class = Tool:GetAttribute("Class")
-		local ClassModule
+		if Class then
+			if CurrentFirearm and CurrentFirearm ~= Class then
+				CurrentFirearm:Unequip()
+			end;
+
+			CurrentFirearm = Class
+
+			if Tool.Parent == Player.Character then
+				CurrentFirearm:Equip()
+			end;
+
+			if Tool.Equipped then
+				Tool.Equipped:Once(@native function()
+					if CurrentFirearm == Class then
+						CurrentFirearm:Equip()
+					else
+						task.wait()
+						CurrentFirearm = Class
+						CurrentFirearm:Equip()
+					end;
+				end);
+			end;
+
+			if Tool.Unequipped then
+				Tool.Unequipped:Once(@native function()
+				if CurrentFirearm == Class then
+					CurrentFirearm:Unequip()
+					CurrentFirearm = nil
+				end;
+			end);
+		end;
+	end;
+end;
+
+	do
+		local Class = Tool:GetAttribute("Class");
+		local ClassModule;
 
 		if Class then
 			ClassModule = require(Class)
 		end;
+		
+		Tool:GetAttributeChangedSignal("Class"):Connect(@native function()
+			Player:Kick("not smart enough!")
+		end);
 
-		do
-			Tool:GetAttributeChangedSignal("Class"):Connect(@native function()
-				Player:Kick("not smart enough!")
-			end);
+		Tool.Destroying:Connect(@native function()
+			ToolClass.UnRegisterTool(Tool)
+		end);
 
-			Tool.Destroying:Connect(@native function()
-				ToolClass.UnRegisterTool(Tool)
-			end);
+		Tool.Equipped:Connect(@native function(mouse: Mouse)
+			if ClassModule and ClassModule.Equipped then
+				ClassModule.Equipped(Tool)
+			end;
+		end);
 
-			Tool.Equipped:Connect(@native function(mouse: Mouse)
-				if ClassModule and ClassModule.Equipped then
-					ClassModule.Equipped(Tool)
-				end;
-			end);
+		Tool.Unequipped:Connect(@native function()
+			if ClassModule and ClassModule.Unequipped then
+				ClassModule.Unequipped(Tool)
+			end;
+		end);
 
-			Tool.Unequipped:Connect(@native function()
-				if ClassModule and ClassModule.Unequipped then
-					ClassModule.Unequipped(Tool)
-				end;
-			end);
-
-			Tool.Activated:Connect(@native function()
-				if ClassModule then
-					ClassModule.Activated(Tool)
-				end;
-			end);
-		end;
-
+		Tool.Activated:Connect(@native function()
+			if ClassModule then
+				ClassModule.Activated(Tool)
+			end;
+		end);
 	end;
 end;
 
@@ -157,27 +197,48 @@ end;]]
 ---------------------------------------------
 
 InputHandler.Functions = {
-	Reload = @native function(Down: (boolean) , GPE: (boolean) )
-		if not GPE then
-			FirearmClass.Reload()
+	Holster = @native function(Down: (boolean), GPE: (boolean))
+		if Down and not GPE then
+			CurrentFirearm:Holster()
 		end;
 	end,
 	
-	Holster = @native function(Down: (boolean) , GPE: (boolean))
-		if Down and not GPE then
-			FirearmClass.Holster()
+	Reload = @native function(Down: (boolean), GPE: (boolean) )
+		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character then
+			CurrentFirearm:Reload()
 		end;
 	end,
 	
 	Crawl = @native function(Down: (boolean), GPE: (boolean) )
-		if Down and not GPE then
-			FirearmClass.Crawl()
+		if Down and not GPE and CurrentFirearm then
+			CurrentFirearm:Crawl()
 		end;
 	end,
-
+	
+	Activate = @native function(Down: (boolean), GPE: (boolean) )
+		if not CurrentFirearm then
+			return;
+		end;
+		
+		if not Down then
+			CurrentFirearm.MIN_BULLET_SPREAD_ANGLE = 0.4;
+			CurrentFirearm.MAX_BULLET_SPREAD_ANGLE = 0.4;
+			CurrentFirearm.SPREAD_INCREMENT = 1;
+			CurrentFirearm.MAX_SPREAD_ANGLE = 10;
+			CurrentFirearm.SpreadTime = {};
+		end;
+		
+		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character then
+			task.spawn(@native function()
+				CurrentFirearm.ButtonDown = Down
+				CurrentFirearm:Fire()
+			end);
+		end;
+	end,
+	
 	Drop = @native function(Down: (boolean), GPE: (boolean) )
-		if not GPE and GunConfig.EnableDropWeapons then
-			FirearmClass.Drop()
+		if CurrentFirearm and Down and not GPE then
+			network:FireServer("dropFirearm", CurrentFirearm.Tool)
 		end;
 	end,
 	
@@ -191,8 +252,8 @@ InputHandler.Functions = {
 
 
 network:OnEvent({
-	mkHitEffects = @native function(Action: string, gun: any, muzzlePos, hitPos, rayresult)
-		FirearmClass.mkHitEffects(Action, gun, muzzlePos, hitPos, rayresult)
+	mkHitEffects = @native function(Action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
+		FirearmClass:MKHitEffects(Action, muzzlePos, hitPos, rayresult, gun)
 	end,
 	
 	useNVG = @native function(State: (boolean) )
@@ -227,9 +288,8 @@ network:OnEvent({
 
 	end,
 
-})
-network:OnFunction({})
-
+});
+network:OnFunction({});
 
 --RunService:BindToRenderStep("ClientRenderStep", 1, OnRenderStep)
 
