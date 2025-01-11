@@ -175,8 +175,6 @@ end;
 	end;
 	
 	self.IsCrawling = not self.IsCrawling
-
-	warn(og)
 	
 	if self.IsCrawling and Player.Character and Player.Character:FindFirstChildWhichIsA("Humanoid") then
 		og = Player.Character.Humanoid.WalkSpeed
