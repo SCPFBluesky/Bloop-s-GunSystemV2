@@ -30,6 +30,7 @@ do
 	_RaycastParams.CollisionGroup = "Bullets"
 end;
 
+local IsEquipped = false;
 local DB: (boolean) = false :: boolean
 
 type Animations = {
@@ -60,6 +61,10 @@ local Animations: Animations = {
 	--------------------------------------------------------------------------------------------------
 --]]
 @native function MeleeClass:AnimationControl(AnimationName: (string) , Speed: (number?), Arg: (string) )
+	if not IsEquipped then
+		return;
+	end;
+	
 	local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
 	
 	do
@@ -94,7 +99,7 @@ end;
 	assert(Tool, "[MeleeClass] Attempt to call Activated but no tool was passed.")
 	local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
 	
-	if DB or Tool.Parent ~= Char or Char.Humanoid.Health <= 0 or not Char:FindFirstChild("HumanoidRootPart") then
+	if DB or Tool.Parent ~= Char or Char.Humanoid.Health <= 0 or not Char:FindFirstChild("HumanoidRootPart") or not IsEquipped then
 		return;
 	end;
 	
@@ -105,8 +110,8 @@ end;
 	local Doom = workspace:Raycast(doomPos, HRPlookvec * 5, _RaycastParams)
 	
 	local RayResult = {
-		Instance = Doom and Doom.Instance or nil;
-		Normal = Doom and Doom.Normal or nil;
+		Instance = Doom and Doom.Instance;
+		Normal = Doom and Doom.Normal;
 		Position = Doom and Doom.Position
 	}
 
@@ -119,7 +124,10 @@ end;
 	local RandomSlash: (any) = SlashIndex[Num] :: (any)
 
 	
-	MeleeClass:AnimationControl(RandomSlash, 0.2, "Play")
+	if IsEquipped then
+		MeleeClass:AnimationControl(RandomSlash, 0.2, "Play")
+	end;
+	
 	network:FireServer("useMelee", Tool, RayResult)
 	
 	DB = true
@@ -140,6 +148,12 @@ end;
 --]]
 @native function MeleeClass.Equipped(Tool: (Tool) )
 	assert(Tool, "[MeleeClass] Attempt to call Equipped but no tool was passed.")
+	
+	if IsEquipped then
+		return;
+	end;
+	
+	IsEquipped = true
 	
 	if Animations.Idle and Animations.Idle.IsPlaying then
 		Animations.Idle:Stop()
@@ -164,9 +178,9 @@ end;
 		Animations[Name] = New
 	end;
 	
-	task.delay(0.1, @native function()
+	if IsEquipped then
 		MeleeClass:AnimationControl("Idle", 0.2, "Play")
-	end);
+	end;
 end;
 
 --[[
@@ -179,9 +193,15 @@ end;
 --]]
 @native function MeleeClass.Unequipped(Tool: (Tool) )	
 	assert(Tool, "[MeleeClass] Attempt to call Unequipped but no tool was passed.")
+	if not IsEquipped then
+		return;
+	end;
+	IsEquipped = false
 	
-	for _,v: (any) in Animations do
-		v:Stop()
+	if not IsEquipped then
+		for _,v: (any) in Animations do
+			v:Stop()
+		end;
 	end;
 end;
 
