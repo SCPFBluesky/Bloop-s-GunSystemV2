@@ -18,6 +18,7 @@ local MuzzleEffects = game:FindService("ReplicatedStorage").FirearmShared.Stuff.
 local HitEffects = game:FindService("ReplicatedStorage").FirearmShared.Stuff.Effects
 local CreateAnimation = require("CreateAnimation")
 local Settings = require("GunConfig")
+local Icon = require("Icon")
 local Player = game:FindService("Players").LocalPlayer
 
 local DebounceRate = 0
@@ -25,9 +26,13 @@ local IsMobile = game:GetService("UserInputService").TouchEnabled
 local og
 
 local Camera = workspace.CurrentCamera
+local UserGameSettings = UserSettings():GetService("UserGameSettings")
 
 local RNG = Random.new()
 local Mouse = Player:GetMouse()
+local char = Player.Character or Player.CharacterAdded:Wait()
+
+
 
 ---------------------------
 --   R A Y C A S T   --
@@ -49,6 +54,29 @@ RayParams.IgnoreWater = true
 	return ignore;
 end;
 
+
+do
+	if IsMobile then
+
+		local ShiftLock = Icon.new()
+			:setLabel("Enable Shift Lock")
+
+
+		ShiftLock.toggled:Connect(@native function(State: (boolean), Source: (string) )
+			if State then
+				--Player.PlayerGui.MobileUI.MobileButtons.Crosshair.Position = UDim2.new(-3.194, 0,-0.115, 0)
+				ShiftLock:setLabel("Disable Shift Lock")
+				UserGameSettings.RotationType = Enum.RotationType.CameraRelative
+				char.Humanoid.CameraOffset = Vector3.new(1.75, 0, 0)
+			else
+				--Player.PlayerGui.MobileUI.MobileButtons.Crosshair.Position = UDim2.new(-3.174, 0,-0.262, 0)
+				ShiftLock:setLabel("Enable Shift Lock")
+				UserGameSettings.RotationType = Enum.RotationType.MovementRelative
+				char.Humanoid.CameraOffset = Vector3.new(0, 0, 0)
+			end;
+		end);
+	end;
+end;
 
 --[[
 	--------------------------------------------------------------------------------------------------
@@ -121,6 +149,10 @@ end;
 	
 	self.IsEquipped = true;
 	
+	if IsMobile then
+		Player.PlayerGui.MobileUI.Enabled = true
+	end;
+	
 	for AnimationName, ID in self.Settings.Animations do
 		if not self.Animations[AnimationName] then
 			local NewInstance = Instance.new("Animation")
@@ -141,6 +173,10 @@ end;
 	end;
 	
 	self.IsEquipped = false
+	
+	if IsMobile then
+		Player.PlayerGui.MobileUI.Enabled = false
+	end;
 	
 	for _, Animation in self.Animations do
 		if Animation.IsPlaying then
@@ -175,6 +211,7 @@ end;
 	end;
 	
 	self.IsCrawling = not self.IsCrawling
+
 	
 	if self.IsCrawling and Player.Character and Player.Character:FindFirstChildWhichIsA("Humanoid") then
 		og = Player.Character.Humanoid.WalkSpeed
