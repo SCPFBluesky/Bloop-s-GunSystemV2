@@ -3,6 +3,8 @@
 ## A free, open source, made from scratch gun system developed with the Flux Framework.
 
 ## 🚨 Notice
+*A Rewrite of the gun system is in progress as of 1/11/24.* [The new version can be found here.](https://www.roblox.com/games/135329134617356/rewrite-of-the-rewrite) This new rewrite functions exactly the same as the current gun system but with better code so it should run a bit nicer and I highly recommended you use this verison, keep it in note it is unfinished so expect bugs.
+
 I am no longer uploading `.rbxl` files to the github since my fatass is too lazy. The release is now on an uncopylocked place on my roblox profile.  
 🔗 **[Click here for releases](https://www.roblox.com/games/95481417748754/new-gun-system-test)**  
 
