@@ -157,7 +157,7 @@ end;
 		if not self.Animations[AnimationName] then
 			local NewInstance = Instance.new("Animation")
 			NewInstance.AnimationId = "rbxassetid://" .. ID
-			self.Animations[AnimationName] = Player.Character:WaitForChild("Humanoid"):LoadAnimation(NewInstance)
+			self.Animations[AnimationName] = Player.Character:WaitForChild("Humanoid").Animator:LoadAnimation(NewInstance)
 		end
 	end
 	
@@ -180,7 +180,7 @@ end;
 	
 	for _, Animation in self.Animations do
 		if Animation.IsPlaying then
-			Animation:Stop(0.2)
+			Animation:Stop()
 		end;
 	end;
 end;
@@ -249,21 +249,17 @@ end;
 
 	local muzzle = Tool:FindFirstChild("Handle") and Tool.Handle:FindFirstChild("Muzzle")
 	
-	if muzzle then
-		do
-			if Settings.ShowMuzzleEffects then
-				for _, effect in MuzzleEffects:GetChildren() do
+	if Settings.ShowMuzzleEffects then
+		for _, effect in MuzzleEffects:GetChildren() do
 
-					local Clone = effect:Clone()
-					Clone.Parent = muzzle
+			local Clone = effect:Clone()
+			Clone.Parent = muzzle
 
-					if Clone:IsA("ParticleEmitter") then
-						Clone:Emit(20)
-					end;
-
-					game:GetService("Debris"):AddItem(Clone, Clone.Name == "Light" and 0.1 or 5)
-				end;
+			if Clone:IsA("ParticleEmitter") then
+				Clone:Emit(20)
 			end;
+
+			game:GetService("Debris"):AddItem(Clone, Clone.Name == "Light" and 0.1 or 5)
 		end;
 	end;
 
