@@ -9,10 +9,6 @@
 --!strict
 --!native
 
---[[
-	network useage:
-	network:Server(function, functionarg)
-]]
 
 print("[FLUX/CLIENT/CORE] FluxClientCore has been Loaded!")
 
@@ -58,6 +54,7 @@ local NotifyShown = false;
 local Run = false;
 local CanSprint = true;
 local Ambient = Lighting.Ambient;
+local MobileUI = Player.PlayerGui:WaitForChild("MobileUI")
 
 local CurrentFirearm = nil;
 ---------------------------
@@ -90,37 +87,33 @@ end;
 
 	if Tool and Tool:HasTag("Firearm") then
 		local Class;
-		
+
 		repeat
 			task.wait()
 			Class = FirearmClass.new(Tool)
 		until Class and typeof(Class) == "table";
 
 		if Class then
-			if CurrentFirearm and CurrentFirearm ~= Class then
+			--[[if CurrentFirearm and CurrentFirearm ~= Class then
 				CurrentFirearm:Unequip()
-			end;
+			end;[[]]
 
-			CurrentFirearm = Class
-
-			if Tool.Parent == Player.Character then
+			--[[if Tool.Parent == Player.Character then
 				CurrentFirearm:Equip()
-			end;
+			end;]]
 
-			if Tool.Equipped then
-				Tool.Equipped:Once(@native function()
-					if CurrentFirearm == Class then
-						CurrentFirearm:Equip()
-					else
-						task.wait()
-						CurrentFirearm = Class
-						CurrentFirearm:Equip()
-					end;
-				end);
-			end;
+			Tool.Equipped:Once(@native function()
+				CurrentFirearm = Class
+				if CurrentFirearm == Class then
+					CurrentFirearm:Equip()
+				else
+					task.wait()
+					CurrentFirearm = Class
+					CurrentFirearm:Equip()
+				end;
+			end);
 
-			if Tool.Unequipped then
-				Tool.Unequipped:Once(@native function()
+			Tool.Unequipped:Once(@native function()
 				if CurrentFirearm == Class then
 					CurrentFirearm:Unequip()
 					CurrentFirearm = nil
@@ -128,7 +121,6 @@ end;
 			end);
 		end;
 	end;
-end;
 
 	do
 		local Class = Tool:GetAttribute("Class");
@@ -137,7 +129,7 @@ end;
 		if Class then
 			ClassModule = require(Class)
 		end;
-		
+
 		Tool:GetAttributeChangedSignal("Class"):Connect(@native function()
 			Player:Kick("not smart enough!")
 		end);
@@ -178,9 +170,7 @@ end;
 			InitTool(v)
 		end;
 	end;
-	
-	Lighting.Ambient = Ambient
-	Lighting:WaitForChild("NightVision").Enabled = false
+
 end;
 
 --[[@native function OnRenderStep(DeltaTime: number)
@@ -202,24 +192,24 @@ InputHandler.Functions = {
 			CurrentFirearm:Holster()
 		end;
 	end,
-	
+
 	Reload = @native function(Down: (boolean), GPE: (boolean) )
-		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character then
+		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character and not GPE then
 			CurrentFirearm:Reload()
 		end;
 	end,
-	
+
 	Crawl = @native function(Down: (boolean), GPE: (boolean) )
 		if Down and not GPE and CurrentFirearm then
 			CurrentFirearm:Crawl()
 		end;
 	end,
-	
+
 	Activate = @native function(Down: (boolean), GPE: (boolean) )
 		if not CurrentFirearm then
 			return;
 		end;
-		
+
 		if not Down then
 			CurrentFirearm.MIN_BULLET_SPREAD_ANGLE = 0.4;
 			CurrentFirearm.MAX_BULLET_SPREAD_ANGLE = 0.4;
@@ -227,26 +217,21 @@ InputHandler.Functions = {
 			CurrentFirearm.MAX_SPREAD_ANGLE = 10;
 			CurrentFirearm.SpreadTime = {};
 		end;
-		
-		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character then
+
+		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character and not GPE then
 			task.spawn(@native function()
 				CurrentFirearm.ButtonDown = Down
 				CurrentFirearm:Fire()
 			end);
 		end;
 	end,
-	
+
 	Drop = @native function(Down: (boolean), GPE: (boolean) )
 		if CurrentFirearm and Down and not GPE then
 			network:FireServer("dropFirearm", CurrentFirearm.Tool)
 		end;
 	end,
-	
-	Flashlight = @native function(Down: (boolean), GPE: (boolean) )
-		if Down and not GPE then
-			network:FireServer("toggleFlashLight")
-		end;
-	end,
+
 
 }
 
@@ -255,16 +240,8 @@ network:OnEvent({
 	mkHitEffects = @native function(Action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
 		FirearmClass:MKHitEffects(Action, muzzlePos, hitPos, rayresult, gun)
 	end,
-	
-	useNVG = @native function(State: (boolean) )
-		Lighting.NightVision.Enabled = State
-		if State then
-			Lighting.Ambient = Color3.fromRGB(25, 227, 32)
-		else
-			Lighting.Ambient = Ambient
-		end
-	end,
-	
+
+
 	NotifyPlayer = function(Msg: string)
 		if NotifyShown then
 			NotifyMessageText.Text = Msg
@@ -290,6 +267,7 @@ network:OnEvent({
 
 });
 network:OnFunction({});
+
 
 --RunService:BindToRenderStep("ClientRenderStep", 1, OnRenderStep)
 
