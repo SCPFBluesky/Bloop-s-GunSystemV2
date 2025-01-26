@@ -58,11 +58,11 @@ PhysService:CollisionGroupSetCollidable("Bullets", "Accessory", false)
 -- F L U X  F U N C T I O N S --
 --------------------------------
 
-@native function HandleCharAdded(Player: Player, Team: Team)
+function HandleCharAdded(Player: Player, Team: Team)
 	Player.Character:SetAttribute("Flashlight", false)
 end;
 
-@native function GetTeamPriority(teamName: string, PlayerWhoFired: Player)
+function GetTeamPriority(teamName: string, PlayerWhoFired: Player)
 	for priorityLevel: any, teams: any in TeamPriorityModule do
 		for _, team in teams do
 			if team == teamName then
@@ -82,7 +82,7 @@ end;
 end;
 
 
-@native function TeamCheck(PlayerWhoFired: Player, targetPlr: any, gun: Tool)
+function TeamCheck(PlayerWhoFired: Player, targetPlr: any, gun: Tool)
 	if Settings.AlwaysDamage and PlayerWhoFired ~= targetPlr then
 		return true;
 	end
@@ -147,7 +147,7 @@ end;
 	return false;
 end;
 
-@native function DropGun(Player: Player, Tool: any)
+function DropGun(Player: Player, Tool: any)
 	-- this is rushed! but it works well enough and thats what i care about
 
 	if not Tool:IsDescendantOf(Player.Character) and not Tool:IsDescendantOf(Player.Backpack) or not Settings.EnableDropWeapons then
@@ -185,8 +185,8 @@ end;
 
 	local past = Tool.Handle.Position
 
-	task.delay(1, @native function()
-		DropConnect = game:GetService("RunService").Heartbeat:Connect(@native function()
+	task.delay(1,  function()
+		DropConnect = game:GetService("RunService").Heartbeat:Connect( function()
 			if not Tool:FindFirstChild("Handle") then
 				return;
 			end;
@@ -198,7 +198,7 @@ end;
 		end);
 	end);
 
-	Tool:GetAttributeChangedSignal("IsStill"):Connect(@native function()
+	Tool:GetAttributeChangedSignal("IsStill"):Connect( function()
 		if Tool:GetAttribute("IsStill") then
 			if DropConnect then
 				DropConnect:Disconnect()
@@ -213,11 +213,7 @@ end;
 		end;
 	end);
 
-	Prompt.Triggered:Once(@native function(playerWhoTriggered: Player)
-		if playerWhoTriggered.Backpack:FindFirstChild(tostring(Tool)) then
-			return;
-		end;
-
+	Prompt.Triggered:Connect( function(playerWhoTriggered: Player)
 		local GiveTool
 
 		for _, v in game:GetService("ServerStorage"):GetDescendants() do
@@ -240,7 +236,7 @@ end;
 			New.Parent = playerWhoTriggered.Backpack
 			Tool:Destroy()
 
-			task.delay(Pickup.TimeLength, @native function()
+			task.delay(Pickup.TimeLength, function()
 				Pickup:Destroy()
 			end);
 		end;
@@ -248,7 +244,7 @@ end;
 end;
 
 
-@native function ReplicateFire(player: any, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: any)
+function ReplicateFire(player: any, gun: Tool, arg: string, muzzlePosition: Vector3, bulletDirection: Vector3, dmg: number, finalHitPosition: Vector3, raycastResult: any)
 	if gun == nil or not gun:IsDescendantOf(workspace) or player.Character.Humanoid.Health == 0 then return; end;
 
 	if arg == "Discharge" then
@@ -295,8 +291,8 @@ end;
 	end;
 end
 
-task.defer(@native function()
-	task.delay(1.5, @native function()
+task.defer(function()
+	task.delay(1.5, function()
 		for _,v in workspace:GetDescendants() do
 			task.wait()
 			if v:IsA("Accessory") then
@@ -311,8 +307,8 @@ task.defer(@native function()
 	end);
 
 	do
-		Players.PlayerAdded:Connect(@native function(player: Player) 
-			player.CharacterAdded:Connect(@native function(character: Model)  
+		Players.PlayerAdded:Connect( function(player: Player) 
+			player.CharacterAdded:Connect( function(character: Model)  
 				task.wait(1)
 				for _,v in character:GetChildren() do
 					if v:IsA("Accessory") then
@@ -337,14 +333,14 @@ for _,v in Players:GetPlayers() do
 	HandleCharAdded(v)
 end;
 
-Players.PlayerAdded:Connect(@native function(player: Player) 
-	player.CharacterAdded:Connect(@native function(character: Model) 
+Players.PlayerAdded:Connect(function(player: Player) 
+	player.CharacterAdded:Connect(function(character: Model) 
 		HandleCharAdded(player)	
 	end);
 end);
 
 network:OnEvent({
-	createKnifeSounds = @native function(Player: (Player), Tool : (any) )
+	createKnifeSounds = function(Player: (Player), Tool : (any) )
 		if not Tool or Tool.Parent ~= Player.Character or not Tool:FindFirstChild("Main") or Tool:GetAttribute("Inited") then
 			return;
 		end;
@@ -358,26 +354,24 @@ network:OnEvent({
 		
 	end,
 		
-	DischargeWeapon = @native function(Player: Player, gun: any, Action: string, MuzzlePos: Vector3, BulletDir: Vector3, Dmg: number, finalHitPos: Vector3, hitInfo: any)
+	DischargeWeapon = function(Player: Player, gun: any, Action: string, MuzzlePos: Vector3, BulletDir: Vector3, Dmg: number, finalHitPos: Vector3, hitInfo: any)
 		network:FireAllClientsWithException(Player, "mkHitEffects", "DisplayEffects", gun, MuzzlePos, finalHitPos, hitInfo)
 		ReplicateFire(Player, gun, Action, MuzzlePos, BulletDir, Dmg, finalHitPos, hitInfo)
 	end,
 	
-	Reload = @native function(Player: (Player), GunMeta: (any) )
+	Reload = function(Player: (Player), GunMeta: (any) )
 		if not Player or not GunMeta or GunMeta.Tool.Parent ~= Player.Character then
 			return;
 		end;
 		local gun = GunMeta.Tool
 		if Settings.EnableS19ReloadSounds then
 
-			do
-				if not gun.Handle:FindFirstChild("magIn") then
+            if not gun.Handle:FindFirstChild("magIn") then
 
-					local MagInSound = CreateSound.new(330005593, "magIn", 1, gun.Handle)
-					local magOut = CreateSound.new(295387403, "magOut", 1, gun.Handle)
+                local MagInSound = CreateSound.new(330005593, "magIn", 1, gun.Handle)
+                local magOut = CreateSound.new(295387403, "magOut", 1, gun.Handle)
 
-				end;
-			end;
+            end;
 
 			local MagPart = nil
 
@@ -414,7 +408,7 @@ network:OnEvent({
 			MagPart.Transparency = 1
 			magOut:Play()
 
-			task.delay(MagInTime, @native function()
+			task.delay(MagInTime, function()
 				if not gun:IsDescendantOf(Player.Character) then
 					return;
 				end;
@@ -431,7 +425,7 @@ network:OnEvent({
 		end;	
    end,
 	
-	createGun = @native function(Player: (Player), Tool: (any) )
+	createGun = function(Player: (Player), Tool: (any) )
 		if not Player or not Player.Character or Tool.Parent ~= Player.Character then
 			local Settings = Import(Tool.Settings)
 			for Name, ID in Settings.Sounds do
@@ -442,7 +436,7 @@ network:OnEvent({
 		end;
 	end,
 	
-	useMelee = @native function(Player: (Player), Tool: (Tool), rayResult: (any) )
+	useMelee = function(Player: (Player), Tool: (Tool), rayResult: (any) )
 		if not Tool or Tool.Parent ~= Player.Character or not rayResult then
 			return;
 		end;
@@ -469,7 +463,7 @@ network:OnEvent({
 		end;
 	end,
 	
-	useMedkit = @native function(Player: (Player), Tool: any)
+	useMedkit = function(Player: (Player), Tool: any)
 		if not Tool or Tool.Parent ~= Player.Character then
 			return;
 		end;
@@ -481,12 +475,12 @@ network:OnEvent({
 		network:FireClient(Player, "NotifyPlayer", "You start to feel better.")
 	end,
 	
-	dropFirearm = @native function(Player: (Player), gun: any)
+	dropFirearm = function(Player: (Player), gun: any)
 		DropGun(Player, gun)
 	end,
 	
 	
-	toggleFlashLight = @native function(Player: (Player))
+	toggleFlashLight = function(Player: (Player))
 		if not Player.Character then
 			return;
 		end;
@@ -501,7 +495,7 @@ network:OnEvent({
 			local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
 			new:Play()
 
-			task.delay(new.TimeLength, @native function()
+			task.delay(new.TimeLength, function()
 				new:Destroy()
 			end);
 			
@@ -524,7 +518,7 @@ network:OnEvent({
 			local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
 			new:Play()
 
-			task.delay(new.TimeLength, @native function()
+			task.delay(new.TimeLength, function()
 				new:Destroy()
 			end);
 			
@@ -547,7 +541,7 @@ network:OnEvent({
 					local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
 					new:Play()
 
-					task.delay(new.TimeLength, @native function()
+					task.delay(new.TimeLength,  function()
 						new:Destroy()
 					end);
 				end;
