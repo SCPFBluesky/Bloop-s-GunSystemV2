@@ -7,7 +7,6 @@
 ]]
 
 --!strict
---!native
 
 
 print("[FLUX/CLIENT/CORE] FluxClientCore has been Loaded!")
@@ -82,7 +81,7 @@ end;
 -- F L U X  F U N C T I O N S --
 --------------------------------
 
-@native function InitTool(Tool: Tool)
+function InitTool(Tool: Tool)
 	assert(Tool, "Attempt to call InitTool without a tool!")
 
 	if Tool and Tool:HasTag("Firearm") then
@@ -102,7 +101,7 @@ end;
 				CurrentFirearm:Equip()
 			end;]]
 
-			Tool.Equipped:Once(@native function()
+			Tool.Equipped:Once( function()
 				CurrentFirearm = Class
 				if CurrentFirearm == Class then
 					CurrentFirearm:Equip()
@@ -113,7 +112,7 @@ end;
 				end;
 			end);
 
-			Tool.Unequipped:Once(@native function()
+			Tool.Unequipped:Once( function()
 				if CurrentFirearm == Class then
 					CurrentFirearm:Unequip()
 					CurrentFirearm = nil
@@ -130,27 +129,27 @@ end;
 			ClassModule = require(Class)
 		end;
 
-		Tool:GetAttributeChangedSignal("Class"):Connect(@native function()
+		Tool:GetAttributeChangedSignal("Class"):Connect( function()
 			Player:Kick("not smart enough!")
 		end);
 
-		Tool.Destroying:Connect(@native function()
+		Tool.Destroying:Connect( function()
 			ToolClass.UnRegisterTool(Tool)
 		end);
 
-		Tool.Equipped:Connect(@native function(mouse: Mouse)
+		Tool.Equipped:Connect( function(mouse: Mouse)
 			if ClassModule and ClassModule.Equipped then
 				ClassModule.Equipped(Tool)
 			end;
 		end);
 
-		Tool.Unequipped:Connect(@native function()
+		Tool.Unequipped:Connect( function()
 			if ClassModule and ClassModule.Unequipped then
 				ClassModule.Unequipped(Tool)
 			end;
 		end);
 
-		Tool.Activated:Connect(@native function()
+		Tool.Activated:Connect( function()
 			if ClassModule then
 				ClassModule.Activated(Tool)
 			end;
@@ -158,8 +157,8 @@ end;
 	end;
 end;
 
-@native function HandleCharAdded()
-	Player.Backpack.ChildAdded:Connect(@native function(child: Instance) 
+ function HandleCharAdded()
+	Player.Backpack.ChildAdded:Connect( function(child: Instance) 
 		if child:IsA("Tool") then
 			InitTool(child)	
 		end;
@@ -173,7 +172,7 @@ end;
 
 end;
 
---[[@native function OnRenderStep(DeltaTime: number)
+--[[ function OnRenderStep(DeltaTime: number)
 	if Run and CanSprint then
 		Char.Humanoid.WalkSpeed = 23
 	else
@@ -187,25 +186,25 @@ end;]]
 ---------------------------------------------
 
 InputHandler.Functions = {
-	Holster = @native function(Down: (boolean), GPE: (boolean))
+	Holster =  function(Down: (boolean), GPE: (boolean))
 		if Down and not GPE then
 			CurrentFirearm:Holster()
 		end;
 	end,
 
-	Reload = @native function(Down: (boolean), GPE: (boolean) )
+	Reload =  function(Down: (boolean), GPE: (boolean) )
 		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character and not GPE then
 			CurrentFirearm:Reload()
 		end;
 	end,
 
-	Crawl = @native function(Down: (boolean), GPE: (boolean) )
+	Crawl =  function(Down: (boolean), GPE: (boolean) )
 		if Down and not GPE and CurrentFirearm then
 			CurrentFirearm:Crawl()
 		end;
 	end,
 
-	Activate = @native function(Down: (boolean), GPE: (boolean) )
+	Activate =  function(Down: (boolean), GPE: (boolean) )
 		if not CurrentFirearm then
 			return;
 		end;
@@ -219,14 +218,20 @@ InputHandler.Functions = {
 		end;
 
 		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character and not GPE then
-			task.spawn(@native function()
+			task.spawn( function()
 				CurrentFirearm.ButtonDown = Down
 				CurrentFirearm:Fire()
 			end);
 		end;
 	end,
 
-	Drop = @native function(Down: (boolean), GPE: (boolean) )
+	Flashlight =  function(Down: (boolean), GPE: (boolean) )
+		if Down and not GPE then
+			network:FireServer("toggleFlashLight")
+		end;
+	end,
+
+	Drop =  function(Down: (boolean), GPE: (boolean) )
 		if CurrentFirearm and Down and not GPE then
 			network:FireServer("dropFirearm", CurrentFirearm.Tool)
 		end;
@@ -237,10 +242,18 @@ InputHandler.Functions = {
 
 
 network:OnEvent({
-	mkHitEffects = @native function(Action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
+	mkHitEffects =  function(Action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
 		FirearmClass:MKHitEffects(Action, muzzlePos, hitPos, rayresult, gun)
 	end,
 
+	useNVG =  function(State: (boolean) )
+		Lighting.NightVision.Enabled = State
+		if State then
+			Lighting.Ambient = Color3.fromRGB(25, 227, 32)
+		else
+			Lighting.Ambient = Ambient
+		end
+	end,
 
 	NotifyPlayer = function(Msg: string)
 		if NotifyShown then
@@ -255,7 +268,7 @@ network:OnEvent({
 			v:Play()
 		end
 
-		task.delay(9, @native function()
+		task.delay(9,  function()
 			for _,v: (Tween) in NotifcationTweens.FadeOut do
 				v:Play()
 				task.wait(v.TweenInfo.Time)
@@ -272,7 +285,7 @@ network:OnFunction({});
 --RunService:BindToRenderStep("ClientRenderStep", 1, OnRenderStep)
 
 
-Player.CharacterAdded:Connect(@native function(character: Model) 
+Player.CharacterAdded:Connect( function(character: Model) 
 	shared.RegisteredTools = {}
 	HandleCharAdded()
 end);
