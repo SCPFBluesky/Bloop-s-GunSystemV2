@@ -1,5 +1,5 @@
 --[[
-	Name: MedkitClass
+	Name: MedkitClass.luau
 	Author(s): @WATDAHECKLOL32
 	Date: 2024-12-27 23:59:14
 	RunTimeContext: Shared
@@ -7,7 +7,6 @@
 ]]
 
 --!strict
---!native
 
 --[[[
 
@@ -29,11 +28,11 @@
 You can also have Unequipped an Equipped functions.
 These are optional and not required to in order to work.
 
-@native function MedkitClass.Equipped(Tool: (Tool) )
+ function MedkitClass.Equipped(Tool: (Tool) )
 	print("euqio")	
 end;
 
-@native function MedkitClass.Unequipped(Tool: (Tool))
+ function MedkitClass.Unequipped(Tool: (Tool))
 	print("unequip")
 end;
 
@@ -45,7 +44,7 @@ local Player = game:FindService("Players").LocalPlayer
 
 local MedkitClass = {};
 
-@native function MedkitClass.Activated(Tool: (Tool) )
+ function MedkitClass.Activated(Tool: (Tool) )
 	if not Tool then
 		return;
 	end;
