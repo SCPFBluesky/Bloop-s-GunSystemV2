@@ -1,3 +1,5 @@
+--//TODO: Rewrite this
+
 --[[
 	Name: Melee.luau
 	Author(s): @WATDAHECKLOL32
@@ -5,8 +7,8 @@
 	RunTimeContext: Shared
 	Information: made at 4am
 ]]
+
 --!strict
---!native
 
 ---------------------------
 --   V A R I A B L E S   --
@@ -60,7 +62,7 @@ local Animations: Animations = {
 	 @Params : 	      String: AnimationName - Name of the animation to play, Number? : Speed - The speed of the animation String: Arg - State control "Play"/"Stop"
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function MeleeClass:AnimationControl(AnimationName: (string) , Speed: (number?), Arg: (string) )
+ function MeleeClass:AnimationControl(AnimationName: (string) , Speed: (number?), Arg: (string) )
 	if not IsEquipped then
 		return;
 	end;
@@ -95,7 +97,7 @@ end;
 	 @Params : 	      Tool : Tool - The Melee
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function MeleeClass.Activated(Tool : (any) )
+ function MeleeClass.Activated(Tool : (any) )
 	assert(Tool, "[MeleeClass] Attempt to call Activated but no tool was passed.")
 	local Char: (any) = Player.Character or Player.CharacterAdded:Wait() :: (any)
 	
@@ -132,7 +134,7 @@ end;
 	
 	DB = true
 		
-	task.delay(1.5, @native function()
+	task.delay(1.5,  function()
 		DB = false
 		RandomSlash = nil
 	end);	
@@ -146,7 +148,7 @@ end;
 	 @Params : 	      Tool : Tool - The Melee
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function MeleeClass.Equipped(Tool: (Tool) )
+ function MeleeClass.Equipped(Tool: (Tool) )
 	assert(Tool, "[MeleeClass] Attempt to call Equipped but no tool was passed.")
 	
 	if IsEquipped then
@@ -191,7 +193,7 @@ end;
 	 @Params : 	      Tool : Tool - The Melee
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function MeleeClass.Unequipped(Tool: (Tool) )	
+ function MeleeClass.Unequipped(Tool: (Tool) )	
 	assert(Tool, "[MeleeClass] Attempt to call Unequipped but no tool was passed.")
 	if not IsEquipped then
 		return;
