@@ -5,8 +5,8 @@
 	RunTimeContext: Shared
 	Information: Handles client side of the weapon system
 ]]
+
 --!nonstrict
---!native
 
 local FirearmClass = {};
 FirearmClass.__index = FirearmClass
@@ -44,7 +44,7 @@ RayParams.CollisionGroup = "Bullets"
 RayParams.FilterType = Enum.RaycastFilterType.Exclude
 RayParams.IgnoreWater = true
 
-@native function getIgnorelist(items: any)
+ function getIgnorelist(items: any)
 	local ignore = tagged("RayIgnore")
 
 	for _, object in items do
@@ -62,7 +62,7 @@ do
 			:setLabel("Enable Shift Lock")
 
 
-		ShiftLock.toggled:Connect(@native function(State: (boolean), Source: (string) )
+		ShiftLock.toggled:Connect( function(State: (boolean), Source: (string) )
 			if State then
 				--Player.PlayerGui.MobileUI.MobileButtons.Crosshair.Position = UDim2.new(-3.194, 0,-0.115, 0)
 				ShiftLock:setLabel("Disable Shift Lock")
@@ -86,9 +86,9 @@ end;
 	 @Params : Tool - Firearm - The tool to init
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function FirearmClass.new(Firearm: (Tool) )
+ function FirearmClass.new(Firearm: (Tool) )
 	assert(Firearm, "Attempt to call FirearmClass.new, but no tool was provided.")
-	
+
 	if (not Player or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") or not Player.Character:FindFirstChild("Humanoid"):FindFirstChild("Animator") or not Firearm:FindFirstChild("Settings")) then
 		return;
 	end;
@@ -96,7 +96,7 @@ end;
 	RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
 	local Settings = Import(Firearm:FindFirstChild("Settings"))
-	
+
 	local Weapon = setmetatable({
 		Tool = Firearm;
 		Settings = Settings;
@@ -121,14 +121,14 @@ end;
 		IsCrawling = false;
 		IsReloading = false;
 		ButtonDown = false;
-		
+
 		MIN_BULLET_SPREAD_ANGLE = 0.4;
 		MAX_BULLET_SPREAD_ANGLE = 0.4;
 		SPREAD_INCREMENT = 1;
 		MAX_SPREAD_ANGLE = 10;
 		SpreadTime = {};
 	}, FirearmClass);
-		
+
 	network:FireServer("createGun", Firearm)
 	return Weapon;
 end;
@@ -142,17 +142,17 @@ end;
 	 @Params : None
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function FirearmClass:Equip()
+ function FirearmClass:Equip()
 	if self.IsEquipped then
 		return;
 	end;
-	
+
 	self.IsEquipped = true;
-	
+
 	if IsMobile then
 		Player.PlayerGui.MobileUI.Enabled = true
 	end;
-	
+
 	for AnimationName, ID in self.Settings.Animations do
 		if not self.Animations[AnimationName] then
 			local NewInstance = Instance.new("Animation")
@@ -160,24 +160,24 @@ end;
 			self.Animations[AnimationName] = Player.Character:WaitForChild("Humanoid").Animator:LoadAnimation(NewInstance)
 		end
 	end
-	
+
 	if self and self.Tool and self.Tool.Parent == Player.Character and self.Animations.Idle then
 		self.Animations.Idle:Play(0.2)
 	end
-	
+
 end;
 
-@native function FirearmClass:Unequip()
+ function FirearmClass:Unequip()
 	if not self.IsEquipped then
 		return;
 	end;
-	
+
 	self.IsEquipped = false
-	
+
 	if IsMobile then
 		Player.PlayerGui.MobileUI.Enabled = false
 	end;
-	
+
 	for _, Animation in self.Animations do
 		if Animation.IsPlaying then
 			Animation:Stop()
@@ -185,34 +185,34 @@ end;
 	end;
 end;
 
-@native function FirearmClass:Reload()
+ function FirearmClass:Reload()
 	if not self.IsEquipped or self.IsHolstered or self.IsReloading or self.Settings.Ammo == self.MaxAmmo or self.IsCrawling then
 		return;
 	end;
-	
+
 	if self.Animations.Reload then
 		network:FireServer("Reload", self)
 		self.IsReloading = true
 		self.Animations.Reload:Play(0.2)
-		task.delay(self.Animations.Reload.Length, @native function()
+		task.delay(self.Animations.Reload.Length,  function()
 			self.IsReloading = false
 			self.Settings.Ammo = self.MaxAmmo
 		end);
 	end;
 end;
 
-@native function FirearmClass:Crawl()
+ function FirearmClass:Crawl()
 	if not self.IsEquipped or not Player.Character then
 		return;
 	end;
-	
+
 	if not self.CanCrawl then
 		return;
 	end;
-	
+
 	self.IsCrawling = not self.IsCrawling
 
-	
+
 	if self.IsCrawling and Player.Character and Player.Character:FindFirstChildWhichIsA("Humanoid") then
 		og = Player.Character.Humanoid.WalkSpeed
 
@@ -226,7 +226,7 @@ end;
 		self.Animations.Crawl:Stop(0.2)
 		self.Animations.Idle:Play(0.2)
 	end;
-	
+
 end;
 
 --[[
@@ -237,7 +237,7 @@ end;
 	 @Params : string - Action - Useless as shit and exists for no reason, Vector3(s) = muzzlePos, hitPos - Self explaintory, any: rayresult - gun raycast result, tool: the weapon that got fired.
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function FirearmClass:MKHitEffects(action: string, muzzlePos: Vector3, hitPos: Vector3, rayresult: any, Tool: (any) )
+ function FirearmClass:MKHitEffects(action: string, muzzlePos: Vector3, hitPos: Vector3, rayresult: any, Tool: (any) )
 	local FireSound = Tool.Handle:FindFirstChild("FireSound") or Tool.Handle.Fire:Clone()
 	FireSound.SoundGroup = game:FindService("SoundService").Gun
 	FireSound.Parent = Tool.Handle
@@ -248,7 +248,7 @@ end;
 	if action ~= "DisplayEffects" then return; end;
 
 	local muzzle = Tool:FindFirstChild("Handle") and Tool.Handle:FindFirstChild("Muzzle")
-	
+
 	if Settings.ShowMuzzleEffects then
 		for _, effect in MuzzleEffects:GetChildren() do
 
@@ -301,22 +301,22 @@ end;
 	 @Params : None
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function FirearmClass:Fire()
+ function FirearmClass:Fire()
 	while self and Player and Player.Character and Player.Character.Humanoid and Player.Character.Humanoid.Health > 0 and self.Settings.Ammo > 0 and not self.IsHolstered and not self.IsReloading and self.ButtonDown and self.IsEquipped do
 		if not self.IsEquipped then
 			return;
 		end;
-		
-		
+
+
 		local Cooldown = self.Cooldown
 		local RPM = self.RPM
-		
+
 		if Cooldown then
 			if os.clock() - Cooldown < DebounceRate then
 				return;
 			end;
 		end;
-		
+
 
 		if Settings.EnableAltSpread then
 			self.SpreadTime[Player] = (self.SpreadTime[Player] or 0) + 0.01
@@ -335,16 +335,16 @@ end;
 			Player:Kick("Gun settings not found in your gun. You have been kicked for security reasons.")
 		end;
 
-		
+
 		if self.Animations.Fire then
 			self.Animations.Fire:Play(0.2)	
 		end;
-		
+
 		DebounceRate = os.clock()
-		
-		
+
+
 		self.Settings.Ammo -= 1
-	
+
 
 		local cameraRay
 		local spreadCF
@@ -426,11 +426,11 @@ end;
 	 @Params : None
 	--------------------------------------------------------------------------------------------------
 --]]
-@native function FirearmClass:Holster()
+ function FirearmClass:Holster()
 	if not self or not Player.Character or not self.IsEquipped or self.IsReloading or not self.CanLower or self.IsCrawling then
 		return;
 	end;
-	
+
 	if self.IsEquipped then
 		self.IsHolstered = not self.IsHolstered
 		if self.IsHolstered then
