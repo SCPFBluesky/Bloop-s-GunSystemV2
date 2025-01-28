@@ -1,4 +1,4 @@
---//TODO: Rewrite this
+--//TODO: Rewrite this, this is bad.
 
 --[[
 	Name: Melee.luau
