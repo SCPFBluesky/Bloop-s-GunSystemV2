@@ -15,6 +15,9 @@
 	network:FireAllClientsExpect(expect, function, functionarg)
 ]]
 
+--// TODO: Rewrite most of this, this is some of the stuff in here is pretty bad.
+
+
 warn("[FLUX/SERVER/CORE] FluxServerCore has been Loaded!")
 
 
@@ -22,29 +25,32 @@ warn("[FLUX/SERVER/CORE] FluxServerCore has been Loaded!")
 --   V A R I A B L E S   --
 ---------------------------
 
-local Import = require
+local Import = require;
+local _Random = Random.new();
 
-local _Random = Random.new()
-local require, network, thread, tagged, asset = shared.import("require", "network", "thread", "tagged", "asset")
+local wait, delay, spawn, defer, cancel = task.wait, task.delay, task.spawn, task.defer, task.cancel;
+local require, network, thread, tagged, asset = shared.import("require", "network", "thread", "tagged", "asset");
 
-local newInstance = require("newInstance")
+local newInstance = require("newInstance");
 
-local Players = game:FindService("Players")
-local Teams = game:FindService("Teams")
-local Lighting = game:FindService("Lighting")
+local Players = game:FindService("Players");
+local Teams = game:FindService("Teams");
+local Lighting = game:FindService("Lighting");
 
-local CreateSound = require("CreateSound")
-local RunService = game:GetService("RunService")
-local TextService = game:GetService("TextService")
+local CreateSound = require("CreateSound");
+local RunService = game:GetService("RunService");
+local TextService = game:GetService("TextService");
 
-local ServerStorage = game:FindService("ServerStorage")
-local PhysService = game:GetService("PhysicsService")
-local TeleportService = game:GetService("TeleportService")
-local GuiltyHandler = require("GuiltyHandler")
-local TeamPriorityModule = require("TeamPriority")
-local Settings = require("GunConfig")
+local ServerStorage = game:FindService("ServerStorage");
+local PhysService = game:GetService("PhysicsService");
 
-local CollectionService = game:GetService("CollectionService")
+local TeleportService = game:GetService("TeleportService");
+local GuiltyHandler = require("GuiltyHandler");
+
+local TeamPriorityModule = require("TeamPriority");
+local Settings = require("GunConfig");
+
+local CollectionService = game:GetService("CollectionService");
 
 ---------------------------
 --      S E T U P        --
@@ -154,7 +160,7 @@ function DropGun(Player: Player, Tool: any)
 		return;
 	end;
 
-	local DropConnect
+	local DropConnect;
 
 
 	Tool:SetAttribute("IsStill", false)
@@ -185,7 +191,7 @@ function DropGun(Player: Player, Tool: any)
 
 	local past = Tool.Handle.Position
 
-	task.delay(1,  function()
+	delay(1, function()
 		DropConnect = game:GetService("RunService").Heartbeat:Connect( function()
 			if not Tool:FindFirstChild("Handle") then
 				return;
@@ -236,7 +242,7 @@ function DropGun(Player: Player, Tool: any)
 			New.Parent = playerWhoTriggered.Backpack
 			Tool:Destroy()
 
-			task.delay(Pickup.TimeLength, function()
+			delay(Pickup.TimeLength, function()
 				Pickup:Destroy()
 			end);
 		end;
@@ -289,12 +295,13 @@ function ReplicateFire(player: any, gun: Tool, arg: string, muzzlePosition: Vect
 		end;
 		--print((os.clock()-s)*1e+6, "μs")
 	end;
-end
+end;
 
-task.defer(function()
-	task.delay(1.5, function()
+-- ok this is also pretty bad lmao but it works
+defer(function()
+	delay(1.5, function()
 		for _,v in workspace:GetDescendants() do
-			task.wait()
+			wait()
 			if v:IsA("Accessory") then
 				for _,v in v:GetDescendants() do
 					if v:IsA("BasePart") then
@@ -306,23 +313,21 @@ task.defer(function()
 		end;
 	end);
 
-	do
-		Players.PlayerAdded:Connect( function(player: Player) 
-			player.CharacterAdded:Connect( function(character: Model)  
-				task.wait(1)
-				for _,v in character:GetChildren() do
-					if v:IsA("Accessory") then
-						for _,v in v:GetDescendants() do
-							if v:IsA("BasePart") then
-								CollectionService:AddTag(v, "RayIgnore")
-								PhysService:SetPartCollisionGroup(v, "Accessory")
-							end;
-						end;
-					end;
-				end;
-			end);
-		end);
-	end;
+    Players.PlayerAdded:Connect( function(player: Player) 
+        player.CharacterAdded:Connect( function(character: Model)  
+            wait(1)
+            for _,v in character:GetChildren() do
+                if v:IsA("Accessory") then
+                    for _,v in v:GetDescendants() do
+                        if v:IsA("BasePart") then
+                            CollectionService:AddTag(v, "RayIgnore")
+                            PhysService:SetPartCollisionGroup(v, "Accessory")
+                        end;
+                    end;
+                end;
+            end;
+        end);
+    end);
 end)
 
 ---------------------------------------------
@@ -362,7 +367,8 @@ network:OnEvent({
 	Reload = function(Player: (Player), GunMeta: (any) )
 		if not Player or not GunMeta or GunMeta.Tool.Parent ~= Player.Character then
 			return;
-		end;
+        end;
+        
 		local gun = GunMeta.Tool
 		if Settings.EnableS19ReloadSounds then
 
@@ -408,7 +414,7 @@ network:OnEvent({
 			MagPart.Transparency = 1
 			magOut:Play()
 
-			task.delay(MagInTime, function()
+			delay(MagInTime, function()
 				if not gun:IsDescendantOf(Player.Character) then
 					return;
 				end;
@@ -479,7 +485,6 @@ network:OnEvent({
 		DropGun(Player, gun)
 	end,
 	
-	
 	toggleFlashLight = function(Player: (Player))
 		if not Player.Character then
 			return;
@@ -495,7 +500,7 @@ network:OnEvent({
 			local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
 			new:Play()
 
-			task.delay(new.TimeLength, function()
+			delay(new.TimeLength, function()
 				new:Destroy()
 			end);
 			
@@ -518,7 +523,7 @@ network:OnEvent({
 			local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
 			new:Play()
 
-			task.delay(new.TimeLength, function()
+			delay(new.TimeLength, function()
 				new:Destroy()
 			end);
 			
@@ -541,7 +546,7 @@ network:OnEvent({
 					local new: (Sound) = CreateSound.new(1283290053, "Beep", 1, Player.Character.Head) :: (Sound)
 					new:Play()
 
-					task.delay(new.TimeLength,  function()
+					delay(new.TimeLength,  function()
 						new:Destroy()
 					end);
 				end;
