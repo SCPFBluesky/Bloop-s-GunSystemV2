@@ -8,31 +8,38 @@
 
 --!nonstrict
 
+---------------------------
+--   V A R I A B L E S   --
+---------------------------
+
 local FirearmClass = {};
-FirearmClass.__index = FirearmClass
+FirearmClass.__index = FirearmClass;
 
-local Import = require
-local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread")
+local Import = require;
+local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread");
 
-local MuzzleEffects = game:FindService("ReplicatedStorage").FirearmShared.Stuff.Muzzle
-local HitEffects = game:FindService("ReplicatedStorage").FirearmShared.Stuff.Effects
-local CreateAnimation = require("CreateAnimation")
+local wait, delay, spawn, defer, cancel = task.wait, task.delay, task.spawn, task.defer, task.cancel;
+local MuzzleEffects = game:FindService("ReplicatedStorage").FirearmShared.Stuff.Muzzle;
+
+local HitEffects = game:FindService("ReplicatedStorage").FirearmShared.Stuff.Effects;
+local CreateAnimation = require("CreateAnimation");
+
 local Settings = require("GunConfig")
 local Icon = require("Icon")
-local Player = game:FindService("Players").LocalPlayer
 
-local DebounceRate = 0
-local IsMobile = game:GetService("UserInputService").TouchEnabled
-local og
+local Player = game:FindService("Players").LocalPlayer;
+local DebounceRate = 0;
 
-local Camera = workspace.CurrentCamera
-local UserGameSettings = UserSettings():GetService("UserGameSettings")
+local IsMobile = game:GetService("UserInputService").TouchEnabled;
+local og;
 
-local RNG = Random.new()
-local Mouse = Player:GetMouse()
-local char = Player.Character or Player.CharacterAdded:Wait()
+local Camera = workspace.CurrentCamera;
+local UserGameSettings = UserSettings():GetService("UserGameSettings");
 
+local RNG = Random.new();
+local Mouse = Player:GetMouse();
 
+local char = Player.Character or Player.CharacterAdded:Wait();
 
 ---------------------------
 --   R A Y C A S T   --
@@ -44,8 +51,12 @@ RayParams.CollisionGroup = "Bullets"
 RayParams.FilterType = Enum.RaycastFilterType.Exclude
 RayParams.IgnoreWater = true
 
- function getIgnorelist(items: any)
-	local ignore = tagged("RayIgnore")
+---------------------------
+--  M A I N S C R I P T  --
+---------------------------
+
+function getIgnorelist(items: any)
+	local ignore = tagged("RayIgnore");
 
 	for _, object in items do
 		table.insert(ignore, 1, object)
@@ -86,16 +97,12 @@ end;
 	 @Params : Tool - Firearm - The tool to init
 	--------------------------------------------------------------------------------------------------
 --]]
- function FirearmClass.new(Firearm: (Tool) )
-	assert(Firearm, "Attempt to call FirearmClass.new, but no tool was provided.")
-
-	if (not Player or not Player.Character or not Player.Character:FindFirstChild("HumanoidRootPart") or not Player.Character:FindFirstChild("Humanoid"):FindFirstChild("Animator") or not Firearm:FindFirstChild("Settings")) then
-		return;
-	end;
+function FirearmClass.new(Firearm: (Tool) )
+	assert(Firearm, "Attempt to call FirearmClass.new, but no tool was provided.");
 
 	RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
-	local Settings = Import(Firearm:FindFirstChild("Settings"))
+	local Settings = Import(Firearm:FindFirstChild("Settings"));
 
 	local Weapon = setmetatable({
 		Tool = Firearm;
@@ -129,7 +136,8 @@ end;
 		SpreadTime = {};
 	}, FirearmClass);
 
-	network:FireServer("createGun", Firearm)
+    network:FireServer("createGun", Firearm)
+    
 	return Weapon;
 end;
 
@@ -167,7 +175,15 @@ end;
 
 end;
 
- function FirearmClass:Unequip()
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name :  FirearmClass:Unequip()
+	 @Author : @WATDAHECKLOL32
+	 @Description : Unequips the gun
+	 @Params : None
+	--------------------------------------------------------------------------------------------------
+--]]
+function FirearmClass:Unequip()
 	if not self.IsEquipped then
 		return;
 	end;
@@ -185,7 +201,15 @@ end;
 	end;
 end;
 
- function FirearmClass:Reload()
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name :  FirearmClass:Reload()
+	 @Author : @WATDAHECKLOL32
+	 @Description : Reloads the gun
+	 @Params : None
+	--------------------------------------------------------------------------------------------------
+--]]
+function FirearmClass:Reload()
 	if not self.IsEquipped or self.IsHolstered or self.IsReloading or self.Settings.Ammo == self.MaxAmmo or self.IsCrawling then
 		return;
 	end;
@@ -194,14 +218,22 @@ end;
 		network:FireServer("Reload", self)
 		self.IsReloading = true
 		self.Animations.Reload:Play(0.2)
-		task.delay(self.Animations.Reload.Length,  function()
+		delay(self.Animations.Reload.Length,  function()
 			self.IsReloading = false
 			self.Settings.Ammo = self.MaxAmmo
 		end);
 	end;
 end;
 
- function FirearmClass:Crawl()
+--[[
+	--------------------------------------------------------------------------------------------------
+	 @Name :  FirearmClass:Crawl()
+	 @Author : @WATDAHECKLOL32
+	 @Description : le crawl
+	 @Params : None
+	--------------------------------------------------------------------------------------------------
+--]]
+function FirearmClass:Crawl()
 	if not self.IsEquipped or not Player.Character then
 		return;
 	end;
@@ -226,7 +258,6 @@ end;
 		self.Animations.Crawl:Stop(0.2)
 		self.Animations.Idle:Play(0.2)
 	end;
-
 end;
 
 --[[
@@ -237,15 +268,17 @@ end;
 	 @Params : string - Action - Useless as shit and exists for no reason, Vector3(s) = muzzlePos, hitPos - Self explaintory, any: rayresult - gun raycast result, tool: the weapon that got fired.
 	--------------------------------------------------------------------------------------------------
 --]]
- function FirearmClass:MKHitEffects(action: string, muzzlePos: Vector3, hitPos: Vector3, rayresult: any, Tool: (any) )
-	local FireSound = Tool.Handle:FindFirstChild("FireSound") or Tool.Handle.Fire:Clone()
+function FirearmClass:MKHitEffects(action: string, muzzlePos: Vector3, hitPos: Vector3, rayresult: any, Tool: (any) )
+	local FireSound = Tool.Handle:FindFirstChild("FireSound") or Tool.Handle.Fire:Clone();
 	FireSound.SoundGroup = game:FindService("SoundService").Gun
 	FireSound.Parent = Tool.Handle
 	FireSound:Play()
 
 	game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
 
-	if action ~= "DisplayEffects" then return; end;
+    if action ~= "DisplayEffects" then
+        return; 
+    end;
 
 	local muzzle = Tool:FindFirstChild("Handle") and Tool.Handle:FindFirstChild("Muzzle")
 
@@ -274,9 +307,10 @@ end;
 	local attach = HitEffects.Effects:Clone()
 	attach.Parent = workspace.Terrain
 	--attach.CFrame = CFrame.new(hitPos, hitPos + rayresult.Normal)
-	attach.CFrame = attach.CFrame:ToObjectSpace(CFrame.new(hitPos, hitPos + rayresult.Normal))
-	local hithuam 
-	local RayInstance: any = rayresult.Instance
+    attach.CFrame = attach.CFrame:ToObjectSpace(CFrame.new(hitPos, hitPos + rayresult.Normal))
+    
+	local hithuam;
+	local RayInstance: any = rayresult.Instance;
 
 	if RayInstance and RayInstance.Parent and RayInstance.Parent:FindFirstChildWhichIsA("Humanoid") then
 		hithuam = RayInstance.Parent.Humanoid
@@ -301,15 +335,15 @@ end;
 	 @Params : None
 	--------------------------------------------------------------------------------------------------
 --]]
- function FirearmClass:Fire()
+function FirearmClass:Fire()
 	while self and Player and Player.Character and Player.Character.Humanoid and Player.Character.Humanoid.Health > 0 and self.Settings.Ammo > 0 and not self.IsHolstered and not self.IsReloading and self.ButtonDown and self.IsEquipped do
 		if not self.IsEquipped then
 			return;
 		end;
 
 
-		local Cooldown = self.Cooldown
-		local RPM = self.RPM
+		local Cooldown = self.Cooldown;
+		local RPM = self.RPM;
 
 		if Cooldown then
 			if os.clock() - Cooldown < DebounceRate then
@@ -346,17 +380,19 @@ end;
 		self.Settings.Ammo -= 1
 
 
-		local cameraRay
-		local spreadCF
-		local spreadDirection
-		local StartRay
-		local Aimpoint
-		local head
-		local headPos
-		local bulletDirection
-		local finalHitPos
-		local raycastResult
-		local RayResult
+        -- im sorry
+        
+		local cameraRay;
+		local spreadCF;
+		local spreadDirection;
+		local StartRay;
+		local Aimpoint;
+		local head;
+		local headPos;
+		local bulletDirection;
+		local finalHitPos;
+		local raycastResult;
+		local RayResult;
 
 		if IsMobile then
 			local CameraPos = workspace.CurrentCamera.CFrame.Position
@@ -408,7 +444,7 @@ end;
 		FirearmClass:MKHitEffects("DisplayEffects", headPos, finalHitPos, raycastResult, self.Tool)
 
 		network:FireServer("DischargeWeapon", self.Tool, "Discharge", headPos, bulletDirection, self.Damage, finalHitPos, RayResult)
-		task.wait(self.RPM)
+		wait(self.RPM)
 
 		if not self.Automatic then
 			break;
@@ -426,7 +462,7 @@ end;
 	 @Params : None
 	--------------------------------------------------------------------------------------------------
 --]]
- function FirearmClass:Holster()
+function FirearmClass:Holster()
 	if not self or not Player.Character or not self.IsEquipped or self.IsReloading or not self.CanLower or self.IsCrawling then
 		return;
 	end;
