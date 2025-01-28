@@ -8,6 +8,7 @@
 
 --!strict
 
+--// TODO: Rewrite most of this, this is some of the stuff in here is pretty bad.
 
 print("[FLUX/CLIENT/CORE] FluxClientCore has been Loaded!")
 
@@ -15,9 +16,10 @@ print("[FLUX/CLIENT/CORE] FluxClientCore has been Loaded!")
 --   V A R I A B L E S   --
 ---------------------------
 
-local NormalRequire = require;
+local Import = require;
 local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread");
 
+local wait, delay, spawn, defer, cancel = task.wait, task.delay, task.spawn, task.defer, task.cancel;
 shared.RegisteredTools = {};
 
 local Random = Random.new();
@@ -88,7 +90,7 @@ function InitTool(Tool: Tool)
 		local Class;
 
 		repeat
-			task.wait()
+			wait()
 			Class = FirearmClass.new(Tool)
 		until Class and typeof(Class) == "table";
 
@@ -106,7 +108,7 @@ function InitTool(Tool: Tool)
 				if CurrentFirearm == Class then
 					CurrentFirearm:Equip()
 				else
-					task.wait()
+					wait()
 					CurrentFirearm = Class
 					CurrentFirearm:Equip()
 				end;
@@ -218,7 +220,7 @@ InputHandler.Functions = {
 		end;
 
 		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character and not GPE then
-			task.spawn( function()
+			spawn(function()
 				CurrentFirearm.ButtonDown = Down
 				CurrentFirearm:Fire()
 			end);
@@ -268,10 +270,10 @@ network:OnEvent({
 			v:Play()
 		end
 
-		task.delay(9,  function()
+		delay(9, function()
 			for _,v: (Tween) in NotifcationTweens.FadeOut do
 				v:Play()
-				task.wait(v.TweenInfo.Time)
+				wait(v.TweenInfo.Time)
 				NotifyShown = false
 			end;
 		end);
