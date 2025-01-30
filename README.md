@@ -12,6 +12,7 @@ This is a complete and total rewrite of the original gun system i made back in V
 
 ## ✨ So what's new?
 The gun system comes with BIG significant improvements and additional features, including **actual mobile support**. (also fixes input delay also known as "fire" delay) (those who were in v3 know.....) (this shit drove me insane in v3 😭)
+This also comes with a pre-made tool handler so you can use and create your own tools with my flux tool handler with Classes.
 
 ---
 
