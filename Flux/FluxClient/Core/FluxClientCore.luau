@@ -20,7 +20,6 @@ local Import = require;
 local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread");
 
 local wait, delay, spawn, defer, cancel = task.wait, task.delay, task.spawn, task.defer, task.cancel;
-shared.RegisteredTools = {};
 
 local Random = Random.new();
 local createAnimation = require("createAnimation");
@@ -40,13 +39,16 @@ local GuiService = game:GetService("GuiService");
 local TweenService = game:GetService("TweenService");
 local TeleportService = game:GetService("TeleportService");
 
-local Classes = script.Parent.Parent.Classes;
+local Classes = {
+    MedkitClass = require("MedkitClass");
+    FirearmClass = require("FirearmClass");
+};
+
 local Player = Players.LocalPlayer;
 local Char = Player.Character or Player.CharacterAdded:Wait();
 
 local NotifyMessageText = Player.PlayerGui:WaitForChild("Notifcation System").Message;
 
-local ToolClass = require("ToolHandler");
 local InputHandler = require("InputHandler");
 local GunConfig = require("GunConfig");
 local FirearmClass = require("FirearmClass");
@@ -58,6 +60,8 @@ local Ambient = Lighting.Ambient;
 local MobileUI = Player.PlayerGui:WaitForChild("MobileUI")
 
 local CurrentFirearm = nil;
+
+local RegisteredTools = {};
 ---------------------------
 --      S E T U P        --
 ---------------------------
@@ -83,92 +87,72 @@ end;
 -- F L U X  F U N C T I O N S --
 --------------------------------
 
-function InitTool(Tool: Tool)
-	assert(Tool, "Attempt to call InitTool without a tool!")
+function RegisterTool(Tool: Tool)
+    assert(Tool, "Attempt to call InitTool without a tool!");
 
-	if Tool and Tool:HasTag("Firearm") then
-		local Class;
+    if RegisteredTools[Tool] then
+        return;
+    end;
 
-		repeat
-			wait()
-			Class = FirearmClass.new(Tool)
-		until Class and typeof(Class) == "table";
+    RegisteredTools[Tool] = true
 
-		if Class then
-			--[[if CurrentFirearm and CurrentFirearm ~= Class then
-				CurrentFirearm:Unequip()
-			end;[[]]
+    if not Tool:FindFirstChild("Main") then
+        return;
+    end;
 
-			--[[if Tool.Parent == Player.Character then
-				CurrentFirearm:Equip()
-			end;]]
+    local Main = Import(Tool.Main);
+    local TargetClass, Vars = Classes[Main.Class], Main.Variables;
 
-			Tool.Equipped:Once( function()
-				CurrentFirearm = Class
-				if CurrentFirearm == Class then
-					CurrentFirearm:Equip()
-				else
-					wait()
-					CurrentFirearm = Class
-					CurrentFirearm:Equip()
-				end;
-			end);
 
-			Tool.Unequipped:Once( function()
-				if CurrentFirearm == Class then
-					CurrentFirearm:Unequip()
-					CurrentFirearm = nil
-				end;
-			end);
-		end;
-	end;
+    if TargetClass and Vars then
+        local ActualToolClass = TargetClass.new(Tool, Vars);
 
-	do
-		local Class = Tool:GetAttribute("Class");
-		local ClassModule;
+        Tool.Activated:Connect(function()
+            if Main.Class == "FirearmClass" then
+                return;
+            end;
+            
+           ActualToolClass:Activated()
+        end);
+        
+        Tool.Deactivated:Connect(function()
+            if Main.Class == "FirearmClass" then
+                return;
+            end;
+            
+            ActualToolClass:Deactivated()
+        end);
+        
+        
+        Tool.Equipped:Connect(function()
+            if Main.Class == "FirearmClass" then
+                CurrentFirearm = ActualToolClass
+            end;
 
-		if Class then
-			ClassModule = require(Class)
-		end;
+            ActualToolClass:Equip(Tool, Vars)
+        end);
 
-		Tool:GetAttributeChangedSignal("Class"):Connect( function()
-			Player:Kick("not smart enough!")
-		end);
+        Tool.Unequipped:Connect(function()
+            if Main.Class == "FirearmClass" then
+                CurrentFirearm = nil;    
+            end;
 
-		Tool.Destroying:Connect( function()
-			ToolClass.UnRegisterTool(Tool)
-		end);
-
-		Tool.Equipped:Connect( function(mouse: Mouse)
-			if ClassModule and ClassModule.Equipped then
-				ClassModule.Equipped(Tool)
-			end;
-		end);
-
-		Tool.Unequipped:Connect( function()
-			if ClassModule and ClassModule.Unequipped then
-				ClassModule.Unequipped(Tool)
-			end;
-		end);
-
-		Tool.Activated:Connect( function()
-			if ClassModule then
-				ClassModule.Activated(Tool)
-			end;
-		end);
-	end;
+            ActualToolClass:Unequip(Tool, Vars)
+        end);
+    end;
 end;
 
- function HandleCharAdded()
+
+function HandleCharAdded()
 	Player.Backpack.ChildAdded:Connect( function(child: Instance) 
 		if child:IsA("Tool") then
-			InitTool(child)	
+            RegisterTool(child)	
 		end;
 	end);
 
 	for _,v in Player.Backpack:GetChildren() do
 		if v:IsA("Tool") then
-			InitTool(v)
+            RegisterTool(v)
 		end;
 	end;
 
