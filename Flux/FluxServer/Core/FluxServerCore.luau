@@ -433,8 +433,9 @@ network:OnEvent({
 	
 	createGun = function(Player: (Player), Tool: (any) )
 		if not Player or not Player.Character or Tool.Parent ~= Player.Character then
-			local Settings = Import(Tool.Settings)
-			for Name, ID in Settings.Sounds do
+            local Settings = Import(Tool:FindFirstChild("Main"))
+            print(Settings)
+            for Name, ID in Settings.Variables.Sounds do
 				if not Tool.Handle:FindFirstChild(Name) then
 					CreateSound.new(ID, Name, 1, Tool.Handle)
 				end;
@@ -469,7 +470,7 @@ network:OnEvent({
 		end;
 	end,
 	
-	useMedkit = function(Player: (Player), Tool: any)
+    useMedkit = function(Player: (Player), Tool: any)
 		if not Tool or Tool.Parent ~= Player.Character then
 			return;
 		end;
