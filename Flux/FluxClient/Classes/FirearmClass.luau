@@ -39,6 +39,7 @@ local UserGameSettings = UserSettings():GetService("UserGameSettings");
 local RNG = Random.new();
 local Mouse = Player:GetMouse();
 
+local setmetatable = setmetatable;
 local char = Player.Character or Player.CharacterAdded:Wait();
 
 ---------------------------
@@ -138,6 +139,14 @@ function FirearmClass.new(Firearm: (Tool) )
 
     network:FireServer("createGun", Firearm)
     
+    for AnimationName, ID in Weapon.Settings.Animations do
+        if not Weapon.Animations[AnimationName] then
+            local NewInstance = Instance.new("Animation")
+            NewInstance.AnimationId = "rbxassetid://" .. ID
+            Weapon.Animations[AnimationName] = Player.Character:WaitForChild("Humanoid").Animator:LoadAnimation(NewInstance)
+        end;
+    end;
+    
 	return Weapon;
 end;
 
@@ -161,13 +170,6 @@ end;
 		Player.PlayerGui.MobileUI.Enabled = true
 	end;
 
-	for AnimationName, ID in self.Settings.Animations do
-		if not self.Animations[AnimationName] then
-			local NewInstance = Instance.new("Animation")
-			NewInstance.AnimationId = "rbxassetid://" .. ID
-			self.Animations[AnimationName] = Player.Character:WaitForChild("Humanoid").Animator:LoadAnimation(NewInstance)
-		end
-	end
 
 	if self and self.Tool and self.Tool.Parent == Player.Character and self.Animations.Idle then
 		self.Animations.Idle:Play(0.2)
