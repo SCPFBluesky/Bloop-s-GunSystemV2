@@ -1,3 +1,5 @@
+--!strict
+
 --[[
 	
 	┏━━━┓ ┏┓︱︱︱ ┏┓︱┏┓ ┏━┓┏━┓   ┏━━━┓
@@ -14,6 +16,8 @@
 	Author(s): AdministratorGnar, ThunderGemios10
 	━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 --]]
+
+local game, shared, unpack, warn, error, wait, StarterPlayer, insert, require = game, shared, unpack, warn, error, task.wait, game:FindService("StarterPlayer"), table.insert, require;
 
 -- SERVICES
 local Players = game:GetService("Players")
@@ -34,29 +38,29 @@ local verifyFunction = events:WaitForChild("VerifyFunction")
 
 -- NETWORK
 local function net_new_link()
-	local link = {}
-	function link:FireServer(...)
-		remoteEvent:FireServer(securityCode, ...)
-	end
-	function link:InvokeServer(...)
-		return remoteFunction:InvokeServer(securityCode, ...)
-	end
-	
-	function link:OnEvent(events)
-		remoteEvent.OnClientEvent:Connect(function(event, ...)
-			if events[event] then
-				events[event](...)
-			end
-		end)
-	end
-	function link:OnFunction(functions)
-		function remoteFunction.OnClientInvoke(invoke, ...)
-			if functions[invoke] then
-				return functions[invoke](...)
-			end
-		end
-	end
-	return link
+    local link = {}
+    function link:FireServer(...)
+        remoteEvent:FireServer(securityCode, ...)
+    end
+    function link:InvokeServer(...)
+        return remoteFunction:InvokeServer(securityCode, ...)
+    end
+
+    function link:OnEvent(events)
+        remoteEvent.OnClientEvent:Connect(function(event, ...)
+            if events[event] then
+                events[event](...)
+            end
+        end)
+    end
+    function link:OnFunction(functions)
+        function remoteFunction.OnClientInvoke(invoke, ...)
+            if functions[invoke] then
+                return functions[invoke](...)
+            end
+        end
+    end
+    return link
 end
 
 -- ENCODE KEY
@@ -65,42 +69,43 @@ verifyFunction:Destroy()
 
 -- PACKAGES
 local packages = {}
-for _, package in pairs(ReplicatedStorage:WaitForChild("Packages"):GetChildren()) do
-	if not package:IsA("PackageLink") then
-		if not package:FindFirstChild("index") then
-			error(package.Name.." does not include an index file. This package maybe corrupted or broken.")
-		end
-		if packages[package.Name] then
-			error("Attempted to load two or more packages by the same name ("..package..")")
-		end
-		packages[package.Name] = package.index
-	end
+for _, package in ReplicatedStorage:WaitForChild("Packages"):GetChildren() do
+    if not package:IsA("PackageLink") then
+        if not package:FindFirstChild("index") then
+            error(package.Name.." does not include an index file. This package maybe corrupted or broken.")
+        end
+        if packages[package.Name] then
+            error("Attempted to load two or more packages by the same name ("..package..")")
+        end
+        packages[package.Name] = package.index
+    end
 end
 
 -- IMPORT
 shared.import = function(...)
-	local imports = {}
-	for place, import in pairs({...}) do
-		if import == "network" then
-			table.insert(imports, place, net_new_link())
-		elseif packages[import] then
-			table.insert(imports, place, require(packages[import]))
-		else
-			error("Attempted to import an unknown package ("..import.."), "..debug.traceback())
-		end
-	end
-	return unpack(imports)
+    local imports = {}
+    for place, import in {...} do
+        if import == "network" then
+            insert(imports, place, net_new_link())
+        elseif packages[import] then
+            insert(imports, place, require(packages[import]))
+        else
+            error("Attempted to import an unknown package ("..import.."), "..debug.traceback())
+        end
+    end
+    return unpack(imports)
 end
 
 ScriptContext.Error:Connect(function(message, trace, script)
-	warn(script:GetFullName().." errored!")
-	warn("Reason: "..message)
-	warn("Trace: "..trace)
+    warn(script:GetFullName().." errored!")
+    warn("Reason: "..message)
+    warn("Trace: "..trace)
 end)
 
 
 -- EXEC
 shared.import("require")("FluxClientCore")
-task.wait(2.34)
+script.Gun.Parent = game:FindService("SoundService")
+StarterPlayer.StarterPlayerScripts["Flux/client"].Parent = nil
 script.Parent = nil
 script.Disabled = true
