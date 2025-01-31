@@ -88,22 +88,28 @@ end;
 --------------------------------
 
 function RegisterTool(Tool: Tool)
+    if not Tool:IsA("Tool") then
+        return;
+    end;
+    
     assert(Tool, "Attempt to call InitTool without a tool!");
 
     if RegisteredTools[Tool] then
         return;
     end;
 
-    RegisteredTools[Tool] = true
+    RegisteredTools[Tool] = true;
 
-    if not Tool:FindFirstChild("Main") then
+    if not Tool:WaitForChild("Main", 70) then
         return;
     end;
+
 
     local Main = Import(Tool.Main);
     local TargetClass, Vars = Classes[Main.Class], Main.Variables;
 
-
+  
+    
     if TargetClass and Vars then
         local ActualToolClass = TargetClass.new(Tool, Vars);
 
@@ -144,11 +150,7 @@ end;
 
 
 function HandleCharAdded()
-	Player.Backpack.ChildAdded:Connect( function(child: Instance) 
-		if child:IsA("Tool") then
-            RegisterTool(child)	
-		end;
-	end);
+	Player.Backpack.ChildAdded:Connect(RegisterTool)
 
 	for _,v in Player.Backpack:GetChildren() do
 		if v:IsA("Tool") then
