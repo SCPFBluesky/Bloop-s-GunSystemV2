@@ -12,6 +12,12 @@
 --   V A R I A B L E S   --
 ---------------------------
 
+if not game:FindService("SoundService"):FindFirstChild("Gun") then
+    local new = Instance.new("SoundGroup");
+    new.Name = "Gun"
+    new.Parent = game:FindService("SoundService")
+end;
+
 local FirearmClass = {};
 
 FirearmClass.__index = FirearmClass;
@@ -43,6 +49,8 @@ local Mouse = Player:GetMouse();
 
 local setmetatable = setmetatable;
 local char = Player.Character or Player.CharacterAdded:Wait();
+
+local Debris = game:FindService("Debris");
 
 ---------------------------
 --   R A Y C A S T   --
@@ -102,6 +110,8 @@ end;
 --]]
 function FirearmClass.new(Firearm: (Tool), Main: (any) )
     assert(Firearm, "Attempt to call FirearmClass.new, but no tool was provided.");
+
+  
 
     RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
 
@@ -165,7 +175,7 @@ function FirearmClass:Equip()
     if self.IsEquipped then
         return;
     end;
-
+    
     self.IsEquipped = true;
 
     if IsMobile then
@@ -191,7 +201,11 @@ function FirearmClass:Unequip()
     if not self.IsEquipped then
         return;
     end;
-
+    
+    self.IsReloading = false
+    self.IsHolstered = false
+    
+    self.IsCrawling = false
     self.IsEquipped = false
 
     if IsMobile then
@@ -273,12 +287,15 @@ end;
 	--------------------------------------------------------------------------------------------------
 --]]
 function FirearmClass:MKHitEffects(action: string, muzzlePos: Vector3, hitPos: Vector3, rayresult: any, Tool: (any) )
-    local FireSound = Tool.Handle:FindFirstChild("FireSound") or Tool.Handle.Fire:Clone();
+    local FireSound = Instance.new("Sound");
+    FireSound.SoundId = "rbxassetid://"..Import(Tool.Main).Variables.Sounds.Fire
+    FireSound.Name = "Discharge"
     FireSound.SoundGroup = game:FindService("SoundService").Gun
     FireSound.Parent = Tool.Handle
     FireSound:Play()
 
-    game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
+    Debris:AddItem(FireSound, FireSound.TimeLength)
+   -- game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
 
     if action ~= "DisplayEffects" then
         return; 
@@ -287,17 +304,26 @@ function FirearmClass:MKHitEffects(action: string, muzzlePos: Vector3, hitPos: V
     local muzzle = Tool:FindFirstChild("Handle") and Tool.Handle:FindFirstChild("Muzzle")
 
     if Settings.ShowMuzzleEffects then
-        for _, effect in MuzzleEffects:GetChildren() do
-
-            local Clone = effect:Clone()
-            Clone.Parent = muzzle
-
-            if Clone:IsA("ParticleEmitter") then
-                Clone:Emit(20)
+        for _,Effects: (SurfaceLight | ParticleEmitter) in MuzzleEffects:GetChildren() do
+            local New = Effects:Clone();
+            
+            New.Parent = muzzle
+            
+            local Time;
+            
+            if New:IsA("ParticleEmitter") then
+                New:Emit(20)
             end;
-
-            game:GetService("Debris"):AddItem(Clone, Clone.Name == "Light" and 0.1 or 5)
-        end;
+            
+            if New:IsA("PointLight") then
+                Time = 0.1
+            else
+                Time = 5
+            end;
+            
+            Debris:AddItem(New, Time)
+            
+        end
     end;
 
     if not rayresult or not rayresult.Instance or not rayresult.Normal or not hitPos or 
@@ -321,7 +347,7 @@ function FirearmClass:MKHitEffects(action: string, muzzlePos: Vector3, hitPos: V
     end 
 
     if hithuam then
-        if Settings.ShowBlood == true then
+        if Settings.ShowBlood then
             attach.Blood:Emit(10)
         end;
     else
