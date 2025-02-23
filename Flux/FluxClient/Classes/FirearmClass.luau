@@ -1,514 +1,268 @@
+--!strict
+--!native
 --[[
-	Name: FirearmClass.luau
-	Author(s): @WATDAHECKLOL32
-	Date: 2025-01-09 23:46:22
-	RunTimeContext: Shared
-	Information: Handles client side of the weapon system
+	Author(s):		WATDAHECKLOL32
+	Name:           FirearmClass.luau
+	Info:           Handles client aspect of the gun system.
+	Date: 			2/14/24
+	Run context:	Client
 ]]
 
---!nonstrict
-
----------------------------
---   V A R I A B L E S   --
----------------------------
-
-if not game:FindService("SoundService"):FindFirstChild("Gun") then
-    local new = Instance.new("SoundGroup");
-    new.Name = "Gun"
-    new.Parent = game:FindService("SoundService")
-end;
 
 local FirearmClass = {};
 
 FirearmClass.__index = FirearmClass;
 FirearmClass.__mode = "KV";
 
-local Import = require;
-local require, network, tagged, asset, tween, thread = shared.import("require", "network", "tagged", "asset", "tween", "thread");
+local game, assert = game, assert;
+local wait = task.wait;
 
-local wait, delay, spawn, defer, cancel = task.wait, task.delay, task.spawn, task.defer, task.cancel;
-local MuzzleEffects = game:FindService("ReplicatedStorage").FirearmShared.Stuff.Muzzle;
+local include = shared.import;
+local network = include("network");
 
-local HitEffects = game:FindService("ReplicatedStorage").FirearmShared.Stuff.Effects;
-local CreateAnimation = require("CreateAnimation");
+local Players = game:FindService("Players");
+local Player = Players.LocalPlayer;
 
-local Settings = require("GunConfig")
-local Icon = require("Icon")
-
-local Player = game:FindService("Players").LocalPlayer;
-local DebounceRate = 0;
-
-local IsMobile = game:GetService("UserInputService").TouchEnabled;
-local og;
-
-local Camera = workspace.CurrentCamera;
-local UserGameSettings = UserSettings():GetService("UserGameSettings");
-
-local RNG = Random.new();
-local Mouse = Player:GetMouse();
-
+local require, tagged = include("require", "tagged");
 local setmetatable = setmetatable;
-local char = Player.Character or Player.CharacterAdded:Wait();
+
+local CreateAnimation = require("CreateAnimation");
+local AnimationTimer = 0.2;
+
+local RayParmas = RaycastParams.new();
+RayParmas.FilterType = Enum.RaycastFilterType.Exclude;
+
+local Mouse = Player:GetMouse();
+local EffectsFolder = game:FindService("ReplicatedStorage").FirearmShared.Stuff;
 
 local Debris = game:FindService("Debris");
+local Terrain = workspace.Terrain;
 
----------------------------
---   R A Y C A S T   --
----------------------------
+local MobileGUI = Player.PlayerGui:WaitForChild("MobileUI");
+local DebounceRate = 0;
 
-local RayParams = RaycastParams.new()
-RayParams.RespectCanCollide = false
-RayParams.CollisionGroup = "Bullets"
-RayParams.FilterType = Enum.RaycastFilterType.Exclude
-RayParams.IgnoreWater = true
+local UserInputService = game:FindService("UserInputService");
+local RunService = game:FindService("RunService");
 
----------------------------
---  M A I N S C R I P T  --
----------------------------
-
-function getIgnorelist(items: any)
-    local ignore = tagged("RayIgnore");
-
-    for _, object in items do
-        table.insert(ignore, 1, object)
-    end;
-
-    return ignore;
+local function getIgnorelist(items: ({Instance?}) )
+	local ignore = tagged("RayIgnore")
+	for _, object: (Instance?) in next, items do
+		table.insert(ignore, 1, object)
+	end;
+	return ignore;
 end;
 
-
-do
-    if IsMobile then
-
-        local ShiftLock = Icon.new()
-            :setLabel("Enable Shift Lock")
-
-
-        ShiftLock.toggled:Connect( function(State: (boolean), Source: (string) )
-            if State then
-                --Player.PlayerGui.MobileUI.MobileButtons.Crosshair.Position = UDim2.new(-3.194, 0,-0.115, 0)
-                ShiftLock:setLabel("Disable Shift Lock")
-                UserGameSettings.RotationType = Enum.RotationType.CameraRelative
-                char.Humanoid.CameraOffset = Vector3.new(1.75, 0, 0)
-            else
-                --Player.PlayerGui.MobileUI.MobileButtons.Crosshair.Position = UDim2.new(-3.174, 0,-0.262, 0)
-                ShiftLock:setLabel("Enable Shift Lock")
-                UserGameSettings.RotationType = Enum.RotationType.MovementRelative
-                char.Humanoid.CameraOffset = Vector3.new(0, 0, 0)
-            end;
-        end);
-    end;
+function FirearmClass.BulletEffects(Weapon: (any) , FireSound: (number), RayResult1: (any), RayResult2: (any) )
+	local Sound = Instance.new("Sound");
+	Sound.Name = "Discharge"
+	Sound.SoundId =  "rbxassetid://"..FireSound
+	Sound.Parent = Weapon.Handle
+	
+	
+	Sound:Play()
+	
+	for _, Effect in next, EffectsFolder.Muzzle:GetChildren() do
+		local clone = Effect:Clone()
+		clone.Parent = Weapon.Handle.Muzzle
+		local DestructionTime
+		if clone:IsA("ParticleEmitter") then
+			clone:Emit(20)
+		end;
+		if clone.Name == "Light" then
+			DestructionTime = 0.1
+		else
+			DestructionTime = 5
+		end;
+		Debris:AddItem(clone, DestructionTime)
+	end;
+	
+	Debris:AddItem(Sound, Sound.TimeLength)
+	
+	if RayResult1 and RayResult2 then
+		local EffectPart = EffectsFolder.Effects.Effects:Clone();
+		EffectPart.Parent = Terrain
+		EffectPart.CFrame = EffectPart.CFrame:ToObjectSpace(CFrame.new(RayResult2, Weapon.Handle.Muzzle.WorldPosition))
+		
+		if RayResult1.Parent and RayResult1.Parent:FindFirstChildWhichIsA("Humanoid") then
+			EffectPart.Blood:Emit(10)
+			EffectPart.Hit:Play()
+		else
+			EffectPart.Flash:Emit(10)
+			EffectPart.Smoke:Emit(10)
+		end;
+		
+		Debris:AddItem(EffectPart, 0.6)
+	end;
 end;
 
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name :  FirearmClass.new
-	 @Author : @WATDAHECKLOL32
-	 @Description : Initlizes a new weapon
-	 @Params : Tool - Firearm - The tool to init
-	--------------------------------------------------------------------------------------------------
---]]
-function FirearmClass.new(Firearm: (Tool), Main: (any) )
-    assert(Firearm, "Attempt to call FirearmClass.new, but no tool was provided.");
+function FirearmClass.new(Weapon: (Tool), Data: (any) )
+	assert(Weapon);
+	assert(Data);
+	
+	local Animator: (Animator) = Player.Character:WaitForChild("Humanoid").Animator;
+	local self = setmetatable({}, FirearmClass);
+	
+	self.Tool = Weapon;
+	self.Equipped = false;
+	
+	self.IsHolstered = false;
+	self.IsReloading = false;
+	
+	self.Settings = Data;
+	self.MouseDown = false;
+	
+	self.MaxAmmo = self.Settings.Ammo
+	self.Ammo = self.Settings.Ammo;
+	
+	self.Spread = self.Settings.Spread;
+	self.SpreadGuide = 0;
+	
+	self.Animations = {
+		Idle = CreateAnimation.new(Animator, self.Settings.Animations.Idle);
+		Holster = CreateAnimation.new(Animator, self.Settings.Animations.Lower);
+		Reload = CreateAnimation.new(Animator, self.Settings.Animations.Reload)
+	};
+	
 
-  
-
-    RayParams.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera})
-
-    local Settings = Main;
-
-    local Weapon = setmetatable({
-        Tool = Firearm;
-        Settings = Settings;
-        RPM = Settings.RPM;
-        Damage = Settings.Damage;
-        CanLower = Settings.CanLower;
-        CanDrop = Settings.CanDrop;
-        MaxAmmo = Settings.MaxAmmo;
-        Cooldown = Settings.Cooldown;
-        Spread = Settings.Spread;
-        Automatic = Settings.Automatic;
-        Animations = {
-            Idle = nil;
-            Fire = nil;
-            Lower = nil;
-            Reload = nil;
-            Crawl = nil
-        };
-        CanCrawl = Settings.CanCrawl or false;
-        IsEquipped = false;
-        IsHolstered = false;
-        IsCrawling = false;
-        IsReloading = false;
-        ButtonDown = false;
-
-        MIN_BULLET_SPREAD_ANGLE = 0.4;
-        MAX_BULLET_SPREAD_ANGLE = 0.4;
-        SPREAD_INCREMENT = 1;
-        MAX_SPREAD_ANGLE = 10;
-        SpreadTime = {};
-    }, FirearmClass);
-
-    network:FireServer("createGun", Firearm)
-
-    for AnimationName, ID in Weapon.Settings.Animations do
-        if not Weapon.Animations[AnimationName] then
-            local NewInstance = Instance.new("Animation")
-            NewInstance.AnimationId = "rbxassetid://" .. ID
-            Weapon.Animations[AnimationName] = Player.Character:WaitForChild("Humanoid").Animator:LoadAnimation(NewInstance)
-        end;
-    end;
-
-    return Weapon;
+	network:FireServer("createGun", self.Tool);
+	
+	RayParmas.FilterDescendantsInstances = getIgnorelist({Player.Character, workspace.CurrentCamera});
+	return self;
 end;
 
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name :  FirearmClass:Equip()
-	 @Author : @WATDAHECKLOL32
-	 @Description : Fires when the gun is equipped.
-	 @Params : None
-	--------------------------------------------------------------------------------------------------
---]]
 function FirearmClass:Equip()
-    if self.IsEquipped then
-        return;
-    end;
-    
-    self.IsEquipped = true;
-
-    if IsMobile then
-        Player.PlayerGui.MobileUI.Enabled = true
-    end;
-
-
-    if self and self.Tool and self.Tool.Parent == Player.Character and self.Animations.Idle then
-        self.Animations.Idle:Play(0.2)
-    end
-
+	self.Equipped = true
+	
+	self.IsHolstered = false
+	self.IsReloading = false
+	
+	if self.Tool.Parent == Player.Character and self.Animations and self.Animations.Idle then
+		self.Animations.Idle:Play(AnimationTimer)
+	end;
+	
+	if game:FindService("UserInputService").TouchEnabled then
+		MobileGUI.Enabled = true
+	end;
 end;
 
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name :  FirearmClass:Unequip()
-	 @Author : @WATDAHECKLOL32
-	 @Description : Unequips the gun
-	 @Params : None
-	--------------------------------------------------------------------------------------------------
---]]
-function FirearmClass:Unequip()
-    if not self.IsEquipped then
-        return;
-    end;
-    
-    self.IsReloading = false
-    self.IsHolstered = false
-    
-    self.IsCrawling = false
-    self.IsEquipped = false
-
-    if IsMobile then
-        Player.PlayerGui.MobileUI.Enabled = false
-    end;
-
-    for _, Animation in self.Animations do
-        if Animation.IsPlaying then
-            Animation:Stop()
-        end;
-    end;
-end;
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name :  FirearmClass:Reload()
-	 @Author : @WATDAHECKLOL32
-	 @Description : Reloads the gun
-	 @Params : None
-	--------------------------------------------------------------------------------------------------
---]]
 function FirearmClass:Reload()
-    if not self.IsEquipped or self.IsHolstered or self.IsReloading or self.Settings.Ammo == self.MaxAmmo or self.IsCrawling then
-        return;
-    end;
-
-    if self.Animations.Reload then
-        network:FireServer("Reload", self)
-        self.IsReloading = true
-        self.Animations.Reload:Play(0.2)
-        delay(self.Animations.Reload.Length,  function()
-            self.IsReloading = false
-            self.Settings.Ammo = self.MaxAmmo
-        end);
-    end;
+	if self.Ammo == self.MaxAmmo or self.IsHolstered or self.IsReloading or self.Tool.Parent ~= Player.Character then
+		return;
+	end;
+	
+	self.IsReloading = true
+	
+	if self.Tool.Parent == Player.Character then
+		self.Ammo = 0
+		self.Animations.Reload:Play(AnimationTimer)
+		
+		network:FireServer("replicateReload", self.Tool)
+		wait(self.Animations.Reload.Length);
+		
+		if self.Tool.Parent == Player.Character then
+			self.Ammo = self.MaxAmmo
+			self.IsReloading = false
+		end;
+	end;
 end;
 
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name :  FirearmClass:Crawl()
-	 @Author : @WATDAHECKLOL32
-	 @Description : le crawl
-	 @Params : None
-	--------------------------------------------------------------------------------------------------
---]]
-function FirearmClass:Crawl()
-    if not self.IsEquipped or not Player.Character then
-        return;
-    end;
+function FirearmClass:Unequip()
+	self.Equipped = false
 
-    if not self.CanCrawl then
-        return;
-    end;
-
-    self.IsCrawling = not self.IsCrawling
-
-
-    if self.IsCrawling and Player.Character and Player.Character:FindFirstChildWhichIsA("Humanoid") then
-        og = Player.Character.Humanoid.WalkSpeed
-
-        Player.Character.Humanoid.WalkSpeed = 0
-        self.Animations.Idle:Stop(0.2)
-        self.Animations.Crawl:Play(0.2)
-    else
-        Player.Character.Humanoid.WalkSpeed = og
-
-        og = nil
-        self.Animations.Crawl:Stop(0.2)
-        self.Animations.Idle:Play(0.2)
-    end;
+	self.IsHolstered = false
+	self.IsReloading = false
+	
+	if game:FindService("UserInputService").TouchEnabled then
+		MobileGUI.Enabled = true
+	end;
+	
+	if self.Tool.Parent ~= Player.Character then
+		for _, Animation: (AnimationTrack) in next, self.Animations do
+			Animation:Stop(AnimationTimer)
+		end;
+	end;
 end;
 
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name :  FirearmClass:MKHitEffects()
-	 @Author : @WATDAHECKLOL32
-	 @Description : Handles sounds, and visuals for the weapon system, gets called immediately on the client to mask Latency.
-	 @Params : string - Action - Useless as shit and exists for no reason, Vector3(s) = muzzlePos, hitPos - Self explaintory, any: rayresult - gun raycast result, tool: the weapon that got fired.
-	--------------------------------------------------------------------------------------------------
---]]
-function FirearmClass:MKHitEffects(action: string, muzzlePos: Vector3, hitPos: Vector3, rayresult: any, Tool: (any) )
-    local FireSound = Instance.new("Sound");
-    FireSound.SoundId = "rbxassetid://"..Import(Tool.Main).Variables.Sounds.Fire
-    FireSound.Name = "Discharge"
-    FireSound.SoundGroup = game:FindService("SoundService").Gun
-    FireSound.Parent = Tool.Handle
-    FireSound:Play()
-
-    Debris:AddItem(FireSound, FireSound.TimeLength)
-   -- game:GetService("Debris"):AddItem(FireSound, FireSound.TimeLength)
-
-    if action ~= "DisplayEffects" then
-        return; 
-    end;
-
-    local muzzle = Tool:FindFirstChild("Handle") and Tool.Handle:FindFirstChild("Muzzle")
-
-    if Settings.ShowMuzzleEffects then
-        for _,Effects: (SurfaceLight | ParticleEmitter) in MuzzleEffects:GetChildren() do
-            local New = Effects:Clone();
-            
-            New.Parent = muzzle
-            
-            local Time;
-            
-            if New:IsA("ParticleEmitter") then
-                New:Emit(20)
-            end;
-            
-            if New:IsA("PointLight") then
-                Time = 0.1
-            else
-                Time = 5
-            end;
-            
-            Debris:AddItem(New, Time)
-            
-        end
-    end;
-
-    if not rayresult or not rayresult.Instance or not rayresult.Normal or not hitPos or 
-        typeof(rayresult.Instance) ~= "Instance" or typeof(rayresult.Normal) ~= "Vector3" or 
-        typeof(hitPos) ~= "Vector3" then
-        return;
-    end;
-
-
-
-    local attach = HitEffects.Effects:Clone()
-    attach.Parent = workspace.Terrain
-    --attach.CFrame = CFrame.new(hitPos, hitPos + rayresult.Normal)
-    attach.CFrame = attach.CFrame:ToObjectSpace(CFrame.new(hitPos, hitPos + rayresult.Normal))
-
-    local hithuam;
-    local RayInstance: any = rayresult.Instance;
-
-    if RayInstance and RayInstance.Parent and RayInstance.Parent:FindFirstChildWhichIsA("Humanoid") then
-        hithuam = RayInstance.Parent.Humanoid
-    end 
-
-    if hithuam then
-        if Settings.ShowBlood then
-            attach.Blood:Emit(10)
-        end;
-    else
-        attach.Flash:Emit(10)
-        attach.Smoke:Emit(10)
-        game:GetService("Debris"):AddItem(attach, 2)
-    end;
-end;
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name :  FirearmClass:Fire()
-	 @Author : @WATDAHECKLOL32
-	 @Description : Handles sounds, and visuals for the weapon system, gets called immediately on the client to mask Latency.
-	 @Params : None
-	--------------------------------------------------------------------------------------------------
---]]
-function FirearmClass:Fire()
-    while self and Player and Player.Character and Player.Character.Humanoid and Player.Character.Humanoid.Health > 0 and self.Settings.Ammo > 0 and not self.IsHolstered and not self.IsReloading and self.ButtonDown and self.IsEquipped do
-        if not self.IsEquipped then
-            return;
-        end;
-
-
-        local Cooldown = self.Cooldown;
-        local RPM = self.RPM;
-
-        if Cooldown then
-            if os.clock() - Cooldown < DebounceRate then
-                return;
-            end;
-        end;
-
-
-        if Settings.EnableAltSpread then
-            self.SpreadTime[Player] = (self.SpreadTime[Player] or 0) + 0.01
-            local NewSpread = math.min(self.SpreadTime[Player] * self.SPREAD_INCREMENT, self.MAX_SPREAD_ANGLE)
-            self.MIN_BULLET_SPREAD_ANGLE += NewSpread
-            self.MAX_BULLET_SPREAD_ANGLE += NewSpread
-        end;
-
-        if os.clock() - DebounceRate < RPM then
-            return;
-        end;
-
-        local GunData = self.Tool:FindFirstChild("Main")
-
-        if not GunData then
-            Player:Kick("Tool main not found in your gun. You have been kicked for security reasons.")
-        end;
-
-
-        if self.Animations.Fire then
-            self.Animations.Fire:Play(0.2)	
-        end;
-
-        DebounceRate = os.clock()
-
-
-        self.Settings.Ammo -= 1
-
-
-        -- im sorry
-
-        local cameraRay;
-        local spreadCF;
-        local spreadDirection;
-        local StartRay;
-        local Aimpoint;
-        local head;
-        local headPos;
-        local bulletDirection;
-        local finalHitPos;
-        local raycastResult;
-        local RayResult;
-
-        if IsMobile then
-            local CameraPos = workspace.CurrentCamera.CFrame.Position
-
-            local CameralookVector = Camera.CFrame.LookVector
-
-            spreadCF = CFrame.new(Vector3.new(), CameralookVector) *
-                CFrame.fromOrientation(0, 0, RNG:NextNumber(0, math.pi * 2)) *
-                CFrame.fromOrientation(math.rad(RNG:NextNumber(self.MIN_BULLET_SPREAD_ANGLE, self.MAX_BULLET_SPREAD_ANGLE)), 0, 0)
-            spreadDirection = spreadCF.LookVector
-
-            StartRay = workspace:Raycast(CameraPos, spreadDirection * 1000, RayParams)
-            Aimpoint = StartRay and StartRay.Position or (CameraPos + spreadDirection * 1000)
-
-            head = Player.Character:FindFirstChild("Head")
-            headPos = head and head.Position or Vector3.zero
-            bulletDirection = (Aimpoint - headPos).Unit
-            raycastResult = workspace:Raycast(headPos, bulletDirection * 1000, RayParams)
-            finalHitPos = raycastResult and raycastResult.Position or Aimpoint
-
-            RayResult = {
-                Instance = raycastResult and raycastResult.Instance,
-                Normal = raycastResult and raycastResult.Normal,
-                Position = raycastResult and raycastResult.Position or Aimpoint
-            }
-        else
-            cameraRay = workspace.CurrentCamera:ScreenPointToRay(Mouse.X, Mouse.Y)
-            spreadCF = CFrame.new(Vector3.new(), cameraRay.Direction) *
-                CFrame.fromOrientation(0, 0, RNG:NextNumber(0, math.pi * 2)) *
-                CFrame.fromOrientation(math.rad(RNG:NextNumber(self.MIN_BULLET_SPREAD_ANGLE, self.MAX_BULLET_SPREAD_ANGLE)), 0, 0)
-            spreadDirection = spreadCF.LookVector
-
-            StartRay = workspace:Raycast(cameraRay.Origin, spreadDirection * 1000, RayParams)
-            Aimpoint = StartRay and StartRay.Position or (cameraRay.Origin + spreadDirection * 1000)
-            head = Player.Character and Player.Character:FindFirstChild("Head")
-            headPos = head and head.Position or Vector3.zero
-
-            bulletDirection = (Aimpoint - headPos).Unit
-            raycastResult = workspace:Raycast(headPos, bulletDirection * 1000, RayParams)
-            finalHitPos = raycastResult and raycastResult.Position or Aimpoint
-
-            RayResult = {
-                Instance = raycastResult and raycastResult.Instance,
-                Normal = raycastResult and raycastResult.Normal,
-                Position = raycastResult and raycastResult.Position or Aimpoint
-            }
-        end;
-
-        FirearmClass:MKHitEffects("DisplayEffects", headPos, finalHitPos, raycastResult, self.Tool)
-
-        network:FireServer("DischargeWeapon", self.Tool, "Discharge", headPos, bulletDirection, self.Damage, finalHitPos, RayResult)
-        wait(self.RPM)
-
-        if not self.Automatic then
-            break;
-        end;
-    end;
-
-    self.IsButtonDown = false
-end;
-
---[[
-	--------------------------------------------------------------------------------------------------
-	 @Name :  FirearmClass:Holster()
-	 @Author : @WATDAHECKLOL32
-	 @Description : Holsters (Lowers) the player's weapon.
-	 @Params : None
-	--------------------------------------------------------------------------------------------------
---]]
 function FirearmClass:Holster()
-    if not self or not Player.Character or not self.IsEquipped or self.IsReloading or not self.CanLower or self.IsCrawling then
-        return;
-    end;
-
-    if self.IsEquipped then
-        self.IsHolstered = not self.IsHolstered
-        if self.IsHolstered then
-            self.Animations.Idle:Stop()
-            self.Animations.Lower:Play()
-        else
-            self.Animations.Lower:Stop()
-            self.Animations.Idle:Play()
-        end;
-    end;
+	if not self.Equipped or self.IsReloading then
+		return;
+	end;
+	
+	self.IsHolstered = not self.IsHolstered
+		
+	if self.IsHolstered then
+		self.Animations.Holster:Play()
+	else
+		self.Animations.Holster:Stop()
+	end;
 end;
 
+function FirearmClass:Activated(Down: (boolean) )
+	if not self.Equipped or self.IsReloading or self.IsHolstered or self.Ammo <= 0 then
+		return;
+	end;
+	
+	self.MouseDown = Down
+	
+	if not Down then
+		self.Spread = self.Settings.Spread	
+		self.SpreadGuide = 0
+	end;
+	
+	while self.MouseDown and not self.IsHolstered and self.Equipped and not self.IsReloading and self.Ammo > 0 and Player and Player.Character and Player.Character:FindFirstChild("Head") and Player.Character:FindFirstChildWhichIsA("Humanoid") and Player.Character.Humanoid.Health > 0 and Player.Character:FindFirstChild("HumanoidRootPart") do	
+		if os.clock() - DebounceRate < self.Settings.RPM then
+			return;
+		end;
 
+		DebounceRate = os.clock()
+
+		self.SpreadGuide += 0.3
+		self.Ammo -= 1
+
+		local MouseRay = Mouse.UnitRay;
+		local MouseOrigin = MouseRay.Origin;
+		local MouseDirection = MouseRay.Direction;
+
+		local MouseHit, MouseHitPosition = workspace:FindPartOnRayWithIgnoreList(
+			Ray.new(MouseOrigin, MouseDirection * 1000),
+			getIgnorelist({workspace.CurrentCamera, Player.Character}),
+			false,
+			true
+		);
+
+		local TargetPosition = MouseHitPosition or (MouseOrigin + MouseDirection * 1000);
+
+		local RayOrigin = Player.Character.Head.Position;
+		local DirectionToTarget = (TargetPosition - RayOrigin).Unit;
+
+		local SpreadResult = self.SpreadGuide * self.Spread / 5;
+		local spreadX = math.rad(math.random(-SpreadResult * 100, SpreadResult * 100) / 100);
+		local spreadY = math.rad(math.random(-SpreadResult * 100, SpreadResult * 100) / 100);
+		local spreadZ = math.rad(math.random(-SpreadResult * 100, SpreadResult * 100) / 100);
+
+		local FinalDir = (CFrame.new(Vector3.new(), DirectionToTarget) * CFrame.Angles(spreadX, spreadY, spreadZ)).LookVector;
+
+		local Raycast1, Raycast2 = workspace:FindPartOnRayWithIgnoreList(
+			Ray.new(RayOrigin, FinalDir * 100),
+			getIgnorelist({workspace.CurrentCamera, Player.Character}),
+			false,
+			true
+		);
+
+		FirearmClass.BulletEffects(self.Tool, self.Settings.Sounds.Fire, Raycast1, Raycast2)
+		network:FireServer("dischargeFirearm", self.Tool, self.Settings.Sounds.Fire, Raycast1, Raycast2);
+
+
+
+		if not self.Settings.Automatic then
+			break;
+		end;
+
+		wait(self.Settings.RPM)
+	end;
+	
+	self.Spread = self.Settings.Spread	
+	self.SpreadGuide = 0
+end;
 
 return FirearmClass;
