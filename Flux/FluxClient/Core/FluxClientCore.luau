@@ -1,14 +1,13 @@
+--!nonstrict
+--!native
 --[[
-	Name: FluxClientCore.Luau
-	Author(s): @WATDAHECKLOL32
-	Date: 2024-12-27 12:43:12 AM
-	RunTimeContext: Shared
-	Information: client side handler for the flux framework.
+	Author(s):		WATDAHECKLOL32
+	Name:           FluxClientCore.luau
+	Info:           Handles all Client aspects of the game.
+	Date: 			2/14/24
+	Run context:	Client
 ]]
 
---!strict
-
---// TODO: Rewrite most of this, this is some of the stuff in here is pretty bad.
 
 print("[FLUX/CLIENT/CORE] FluxClientCore has been Loaded!")
 
@@ -40,133 +39,103 @@ local TweenService = game:GetService("TweenService");
 local TeleportService = game:GetService("TeleportService");
 
 local Classes = {
-    MedkitClass = require("MedkitClass");
-    FirearmClass = require("FirearmClass");
+	FirearmClass = require("FirearmClass");
+	CardClass = require("CardClass");
+	MedkitClass = require("MedkitClass")
 };
+
+local RegisteredTools = {};
 
 local Player = Players.LocalPlayer;
 local Char = Player.Character or Player.CharacterAdded:Wait();
 
-local NotifyMessageText = Player.PlayerGui:WaitForChild("Notifcation System").Message;
-
 local InputHandler = require("InputHandler");
+
 local GunConfig = require("GunConfig");
-local FirearmClass = require("FirearmClass");
-
-local NotifyShown = false;
-local Run = false;
-local CanSprint = true;
 local Ambient = Lighting.Ambient;
-local MobileUI = Player.PlayerGui:WaitForChild("MobileUI")
 
-local CurrentFirearm = nil;
+local CurrentFirearm;
+local FlashlightStatus = false;
 
-local RegisteredTools = {};
+
+local Notify = Player.PlayerGui:WaitForChild("Notifcation System").Message;
 ---------------------------
 --      S E T U P        --
 ---------------------------
 
 
-local NotifcationTweens = {
-	FadeIn = {};
-	FadeOut = {}
-};
-
-do
-	local NotifcationTweenInfo = TweenInfo.new(3.12, Enum.EasingStyle.Linear, Enum.EasingDirection.Out, 0, true)
-
-
-	local FadeinTween = TweenService:Create(NotifyMessageText, NotifcationTweenInfo, {TextTransparency = 0})
-	local FadeOutTween = TweenService:Create(NotifyMessageText, NotifcationTweenInfo, {TextTransparency = 1})
-
-	table.insert(NotifcationTweens.FadeIn, FadeinTween)
-	table.insert(NotifcationTweens.FadeOut, FadeOutTween)
-end;
-
 --------------------------------
 -- F L U X  F U N C T I O N S --
 --------------------------------
 
-function RegisterTool(Tool: Tool)
-    if not Tool:IsA("Tool") then
-        return;
-    end;
-    
-    assert(Tool, "Attempt to call InitTool without a tool!");
+function InitTool(Tool: (Tool) )
+	assert(Tool);
+	
+	if not Tool:IsA("Tool") then
+		return;
+	end;
+	
+	if RegisteredTools[Tool] then
+		return;
+	end;
+	
+	RegisteredTools[Tool] = true;
 
-    if RegisteredTools[Tool] then
-        return;
-    end;
+	if Tool:WaitForChild("Main") then
+		local Main = Import(Tool.Main);
+		local Variables = Main.Variables;
 
-    RegisteredTools[Tool] = true;
+		local ToolClass = Classes[Main.Class].new(Tool, Variables); 
 
-    if not Tool:WaitForChild("Main", 70) then
-        return;
-    end;
+		Tool.Equipped:Connect(function()
+			if ToolClass then
+				ToolClass:Equip()
+			end;
 
+			if Main.Class == "FirearmClass" then
+				CurrentFirearm = ToolClass;
+			end;
+		end);
 
-    local Main = Import(Tool.Main);
-    local TargetClass, Vars = Classes[Main.Class], Main.Variables;
+		Tool.Unequipped:Connect(function()
+			if ToolClass then
+				ToolClass:Unequip()
+			end;
 
-  
-    
-    if TargetClass and Vars then
-        local ActualToolClass = TargetClass.new(Tool, Vars);
+			if Main.Class == "FirearmClass" then
+				CurrentFirearm = nil;
+			end;
 
-        Tool.Activated:Connect(function()
-            if Main.Class == "FirearmClass" then
-                return;
-            end;
-            
-           ActualToolClass:Activated()
-        end);
-        
-        Tool.Deactivated:Connect(function()
-            if Main.Class == "FirearmClass" then
-                return;
-            end;
-            
-            ActualToolClass:Deactivated()
-        end);
-        
-        
-        Tool.Equipped:Connect(function()
-            if Main.Class == "FirearmClass" then
-                CurrentFirearm = ActualToolClass
-            end;
+		end);
 
-            ActualToolClass:Equip(Tool, Vars)
-        end);
+		Tool.Activated:Connect(function()
+			if ToolClass and Main.Class ~= "FirearmClass"  then
+				ToolClass:Activated()
+			end;
+		end);
 
-        Tool.Unequipped:Connect(function()
-            if Main.Class == "FirearmClass" then
-                CurrentFirearm = nil;    
-            end;
-
-            ActualToolClass:Unequip(Tool, Vars)
-        end);
-    end;
+		Tool.Deactivated:Connect(function()
+			if ToolClass and Main.Class ~= "FirearmClass" then
+				ToolClass:Deactivated()
+			end;
+		end);
+	end;
 end;
-
 
 function HandleCharAdded()
-	Player.Backpack.ChildAdded:Connect(RegisterTool)
-
-	for _,v in Player.Backpack:GetChildren() do
-		if v:IsA("Tool") then
-            RegisterTool(v)
+	for _,Tool: (Tool) in next, Player.Backpack:GetChildren() do
+		if Tool:IsA("Tool") and not RegisteredTools[Tool] then
+			InitTool(Tool)
 		end;
 	end;
-
+	
+	FlashlightStatus = false
+	
+	Player.Backpack.ChildAdded:Connect(function(NewTool: (Tool) )
+		InitTool(NewTool)
+	end);
 end;
 
---[[ function OnRenderStep(DeltaTime: number)
-	if Run and CanSprint then
-		Char.Humanoid.WalkSpeed = 23
-	else
-		Char.Humanoid.WalkSpeed = 16
-	end;
-end;]]
 
 
 ---------------------------------------------
@@ -174,112 +143,82 @@ end;]]
 ---------------------------------------------
 
 InputHandler.Functions = {
-	Holster =  function(Down: (boolean), GPE: (boolean))
-		if Down and not GPE then
+	Holster = function(Down: (boolean), GPE: (boolean) )
+		if GPE or not CurrentFirearm then
+			return;
+		end;
+		
+		if CurrentFirearm and Down then
 			CurrentFirearm:Holster()
 		end;
 	end,
-
-	Reload =  function(Down: (boolean), GPE: (boolean) )
-		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character and not GPE then
+	
+	Reload = function(Down: (boolean), GPE: (boolean) )
+		if GPE or not CurrentFirearm then
+			return;
+		end;
+		
+		if Down then
 			CurrentFirearm:Reload()
 		end;
 	end,
-
-	Crawl =  function(Down: (boolean), GPE: (boolean) )
-		if Down and not GPE and CurrentFirearm then
-			CurrentFirearm:Crawl()
-		end;
-	end,
-
-	Activate =  function(Down: (boolean), GPE: (boolean) )
-		if not CurrentFirearm then
+	
+	Flashlight = function(Down: (boolean), GPE: (boolean) )
+		if GPE then
 			return;
 		end;
-
-		if not Down then
-			CurrentFirearm.MIN_BULLET_SPREAD_ANGLE = 0.4;
-			CurrentFirearm.MAX_BULLET_SPREAD_ANGLE = 0.4;
-			CurrentFirearm.SPREAD_INCREMENT = 1;
-			CurrentFirearm.MAX_SPREAD_ANGLE = 10;
-			CurrentFirearm.SpreadTime = {};
+		
+		if Down then
+			FlashlightStatus = not FlashlightStatus
+			network:FireServer("useFlashlight", FlashlightStatus)
 		end;
-
-		if CurrentFirearm and CurrentFirearm.Tool.Parent == Player.Character and not GPE then
+	end,
+	
+	Activate = function(Down: (boolean), GPE: (boolean) )
+		if CurrentFirearm then
 			spawn(function()
-				CurrentFirearm.ButtonDown = Down
-				CurrentFirearm:Fire()
+				CurrentFirearm:Activated(Down)
 			end);
 		end;
 	end,
+	
+};
 
-	Flashlight =  function(Down: (boolean), GPE: (boolean) )
-		if Down and not GPE then
-			network:FireServer("toggleFlashLight")
-		end;
-	end,
-
-	Drop =  function(Down: (boolean), GPE: (boolean) )
-		if CurrentFirearm and Down and not GPE then
-			network:FireServer("dropFirearm", CurrentFirearm.Tool)
-		end;
-	end,
-
-
-}
 
 
 network:OnEvent({
-	mkHitEffects =  function(Action: string, gun: any, muzzlePos: Vector3, hitPos: Vector3, rayresult: any)
-		FirearmClass:MKHitEffects(Action, muzzlePos, hitPos, rayresult, gun)
+	useNVG = function()
+		Lighting.NightVisionEffect.Enabled = FlashlightStatus	
 	end,
-
-	useNVG =  function(State: (boolean) )
-		Lighting.NightVision.Enabled = State
-		if State then
-			Lighting.Ambient = Color3.fromRGB(25, 227, 32)
-		else
-			Lighting.Ambient = Ambient
-		end
+	
+	ReplicateGunEffects = function(Weapon: (Tool), FireSound: (number), RayCast1: (Instance), Raycast2: (number) )
+		Classes.FirearmClass.BulletEffects(Weapon, FireSound, RayCast1, Raycast2)
 	end,
 
 	NotifyPlayer = function(Msg: string)
-		if NotifyShown then
-			NotifyMessageText.Text = Msg
-			return;
-		end;
-
-		NotifyShown = true
-		NotifyMessageText.Text = Msg
-
-		for _,v: (Tween) in NotifcationTweens.FadeIn do
-			v:Play()
-		end
-
-		delay(9, function()
-			for _,v: (Tween) in NotifcationTweens.FadeOut do
-				v:Play()
-				wait(v.TweenInfo.Time)
-				NotifyShown = false
-			end;
-		end);
-
+		Notify.Text = Msg
+		tween(Notify, {
+			TextStrokeTransparency = 0;
+			TextTransparency = 0;
+		}, 1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+		wait(6)
+		tween(Notify, {
+			TextStrokeTransparency = 1;
+			TextTransparency = 1;
+		}, 1, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
 	end,
-
+	
 });
+
 network:OnFunction({});
 
 
---RunService:BindToRenderStep("ClientRenderStep", 1, OnRenderStep)
-
 
 Player.CharacterAdded:Connect( function(character: Model) 
-	shared.RegisteredTools = {}
 	HandleCharAdded()
 end);
 
 if Player.Character then
-	shared.RegisteredTools = {}
 	HandleCharAdded()
 end;
 
